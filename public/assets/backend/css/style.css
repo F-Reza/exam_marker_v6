@@ -1,0 +1,314 @@
+
+/* ==============================
+   WINDOW SCROLL LAYOUT FIX
+============================== */
+
+
+html,
+body{
+    min-height:100%;
+    overflow-y:auto;
+    overflow-x:hidden;
+}
+
+
+/* Main app */
+
+.app-shell{
+
+    display:grid;
+    grid-template-columns:245px 1fr;
+    min-height:100vh;
+
+}
+
+
+
+/* Sidebar grows with content */
+
+.sidebar{
+
+    position:relative;
+
+    height:auto;
+
+    min-height:100vh;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+
+
+/* Remove internal sidebar scroll */
+
+.sidebar nav{
+
+    overflow:visible;
+
+    flex:none;
+
+}
+
+
+
+/* Side plan stays after menu */
+
+.side-plan{
+
+    margin-top:30px;
+
+}
+
+
+
+/* Main wrapper */
+
+.main-wrap{
+
+    min-height:100vh;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+
+
+/* Content */
+
+.content{
+
+    flex:1;
+
+}
+
+
+
+/* Footer normally follows page */
+
+.site-footer{
+
+    margin-top:auto;
+
+}
+
+
+
+/* Transaction History */
+
+.btn-primary {
+    
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:10px 18px;
+}
+
+.btn-danger
+{
+    background:#dc2626;
+    color:white;
+    border:none;
+    padding:10px 18px;
+}
+
+
+.btn-danger:hover
+{
+    background:#b91c1c;
+}
+
+
+
+
+/* Support Center Tabs */
+
+.support-tabs {
+    display: flex;
+    gap: 15px;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+
+
+.support-tabs a {
+    padding: 12px 25px;
+    border: 1px solid #ddd;
+    text-decoration: none;
+    border-radius: 6px;
+}
+
+
+.support-tabs a.active {
+    background: #2563eb;
+    color: white;
+}
+
+
+
+
+
+/* ==============================
+   AI PROCESSING DASHBOARD
+============================== */
+
+.ai-processing-page .welcome
+{
+    margin-bottom:25px;
+}
+
+
+.ai-processing-page .welcome h1
+{
+    font-size:20px;
+    font-weight:600;
+    color:#13213f;
+    margin-bottom:8px;
+}
+
+
+.ai-processing-page .welcome p
+{
+    color:#64748b;
+}
+
+
+
+
+.ai-processing-page .ai-stat-grid
+{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:18px;
+    margin-bottom:25px;
+}
+
+
+
+.ai-processing-page .ai-stat-card
+{
+    background:white;
+    border:1px solid #dce5f2;
+    border-radius:16px;
+    padding:22px;
+    box-shadow:0 5px 18px rgba(22,43,82,.06);
+    transition:.25s;
+}
+
+
+
+.ai-processing-page .ai-stat-card:hover
+{
+    transform:translateY(-4px);
+    box-shadow:0 12px 30px rgba(22,43,82,.12);
+}
+
+
+
+.ai-processing-page .ai-stat-card h2
+{
+    font-size:14px;
+    color:#64748b;
+    text-transform:uppercase;
+    margin-bottom:12px;
+}
+
+
+
+.ai-processing-page .ai-stat-card h1
+{
+    font-size:32px;
+    color:#1557d5;
+    margin:0;
+}
+
+
+
+
+.ai-processing-page .queue-card
+{
+    background:white;
+    border-radius:16px;
+    border:1px solid #dce5f2;
+    padding:22px;
+    box-shadow:0 5px 18px rgba(22,43,82,.06);
+}
+
+
+
+.ai-processing-page .queue-card h2
+{
+    font-size:18px;
+    font-weight:500;
+    margin-bottom:20px;
+}
+
+
+
+.ai-processing-page table
+{
+    width:100%;
+    border-collapse:collapse;
+}
+
+
+
+.ai-processing-page th
+{
+    background:#f8fafc;
+    color:#64748b;
+    font-size:13px;
+    text-transform:uppercase;
+}
+
+
+
+.ai-processing-page td,
+.ai-processing-page th
+{
+    padding:14px 16px;
+    border-bottom:1px solid #edf1f7;
+}
+
+
+
+.ai-processing-page .status
+{
+    padding:5px 12px;
+    border-radius:999px;
+    font-size:12px;
+    font-weight:700;
+}
+
+
+
+@media(max-width:1000px)
+{
+
+.ai-processing-page .ai-stat-grid
+{
+    grid-template-columns:repeat(2,1fr);
+}
+
+}
+
+
+
+@media(max-width:600px)
+{
+
+.ai-processing-page .ai-stat-grid
+{
+    grid-template-columns:1fr;
+}
+
+}
+
+
+ a {
+    text-decoration: none;
+}

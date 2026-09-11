@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration;use Illuminate\Database\Schema\Blueprint;use Illuminate\Support\Facades\Schema;
+return new class extends Migration {public function up():void{Schema::create('plans',function(Blueprint $t){$t->id();$t->string('name');$t->string('slug')->unique();$t->decimal('price',10,2)->default(0);$t->string('billing_period')->default('monthly');$t->json('features');$t->json('limits');$t->boolean('active')->default(true);$t->timestamps();});Schema::table('users',fn(Blueprint $t)=>$t->foreign('plan_id')->references('id')->on('plans')->nullOnDelete());}public function down():void{Schema::table('users',fn(Blueprint $t)=>$t->dropForeign(['plan_id']));Schema::dropIfExists('plans');}};

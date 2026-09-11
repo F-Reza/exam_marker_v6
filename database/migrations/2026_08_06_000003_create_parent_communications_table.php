@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration;use Illuminate\Database\Schema\Blueprint;use Illuminate\Support\Facades\Schema;
+return new class extends Migration {public function up():void{Schema::create('parent_communications',function(Blueprint $t){$t->id();$t->foreignId('assessment_id')->constrained()->cascadeOnDelete();$t->foreignId('student_id')->nullable()->constrained()->nullOnDelete();$t->string('recipient');$t->string('channel')->default('email');$t->string('status')->default('pending');$t->text('message')->nullable();$t->timestamp('sent_at')->nullable();$t->timestamps();});}public function down():void{Schema::dropIfExists('parent_communications');}};
