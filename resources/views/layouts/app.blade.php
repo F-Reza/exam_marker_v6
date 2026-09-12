@@ -264,7 +264,10 @@
                         <a href="/#features">Features</a>
                         <a href="{{route('pricing')}}">Plans & Pricing</a>
                         <a href="{{route('login')}}">Login</a>
-                        <a style="color: ghostwhite; font-weight: bold;" class="btn small" href="{{route('register')}}">Register</a>
+                        <a style="color: ghostwhite !important; 
+                        font-weight: bold !important;
+                        padding: 0.55rem .8rem !important;" 
+                        class="btn small small-btn" href="{{route('register')}}">Register</a>
                     </nav>
                 </header>
 

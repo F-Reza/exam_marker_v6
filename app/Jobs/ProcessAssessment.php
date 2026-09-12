@@ -244,8 +244,20 @@ class ProcessAssessment implements ShouldQueue
                             null,
 
 
+                        'question_part'=>
+                            $question['question_part']
+                            ??
+                            null,
+
+
+                        'parent_question_number'=>
+                            $question['parent_question_number']
+                            ??
+                            ($question['question_number'] ?? null),
+
 
                         'topic'=>
+
                             $question['topic']
                             ??
                             null,
@@ -261,6 +273,8 @@ class ProcessAssessment implements ShouldQueue
 
                         'ai_marks'=>
                             $question['ai_marks']
+                            ??
+                            $question['marks']
                             ??
                             0,
 

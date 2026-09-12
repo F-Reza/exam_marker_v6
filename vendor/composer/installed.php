@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'educatalyst/exam-marker',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => null,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => 'd196033096b9aff577cdc7f6680dc50b878f4e55',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -77,9 +77,9 @@
             'dev_requirement' => false,
         ),
         'educatalyst/exam-marker' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => null,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => 'd196033096b9aff577cdc7f6680dc50b878f4e55',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -1,20 +1,217 @@
 <?php
+
 namespace App\Services;
+
 use App\Models\Assessment;
-class DemoPaperMarker implements PaperMarker {
- public function mark(Assessment $a): array {
-  $topics=['Algebra','Calculus','Geometry','Trigonometry','Statistics']; $ratios=[.8,.72,.9,.63,.85];
-  $count=count($topics); $base=(float)$a->total_marks/$count; $questions=[]; $obtained=0;
-  foreach($topics as $idx=>$topic){
-   $max=round($base,1); $score=round($max*$ratios[$idx],1); $obtained+=$score;
-   $questions[]=[
-    'question_number'=>'Q'.($idx+1),'topic'=>$topic,'max_marks'=>$max,'ai_marks'=>$score,
-    'confidence'=>$idx===3?'low':'high','feedback'=>$idx===3?'The method is partly visible, but the written working needs teacher review.':'Relevant method and mostly accurate working were identified.',
-    'criteria'=>[['label'=>'Relevant method used','awarded'=>true],['label'=>'Accurate final answer','awarded'=>$ratios[$idx]>.75]],
-    'status'=>$idx===3?'review_required':'ai_checked'
-   ];
-  }
-  $pct=round($obtained/max(1,(float)$a->total_marks)*100,2);
-  return ['questions'=>$questions,'percentage'=>$pct,'grade'=>$pct>=90?'A+':($pct>=80?'A':($pct>=70?'B':($pct>=60?'C':'Needs Improvement'))),'summary'=>['strengths'=>['Good method selection','Most answers are clearly structured'],'weaknesses'=>['Review unclear working in Q4','Show complete calculation steps'],'notice'=>$a->mark_scheme_path?'Official mark scheme uploaded. Demo adapter used for this local build.':'No official MS was uploaded. A suggested structure was used.']];
- }
+
+
+class DemoPaperMarker implements PaperMarker
+{
+
+    public function mark(Assessment $a): array
+    {
+
+
+        $questions = [
+
+            [
+                'question_number'=>'1',
+                'question_part'=>'a',
+                'parent_question_number'=>'1',
+                'topic'=>'Algebra',
+                'max_marks'=>2,
+                'ai_marks'=>2,
+                'confidence'=>'high',
+                'feedback'=>'Correct algebraic method and final answer identified.',
+                'criteria'=>[
+                    [
+                        'label'=>'Correct method',
+                        'awarded'=>true
+                    ],
+                    [
+                        'label'=>'Correct answer',
+                        'awarded'=>true
+                    ]
+                ],
+                'status'=>'ai_checked'
+            ],
+
+
+
+            [
+                'question_number'=>'1',
+                'question_part'=>'b',
+                'parent_question_number'=>'1',
+                'topic'=>'Algebra',
+                'max_marks'=>3,
+                'ai_marks'=>2,
+                'confidence'=>'medium',
+                'feedback'=>'Method is correct but one step requires improvement.',
+                'criteria'=>[
+                    [
+                        'label'=>'Working shown',
+                        'awarded'=>true
+                    ],
+                    [
+                        'label'=>'Final answer',
+                        'awarded'=>false
+                    ]
+                ],
+                'status'=>'review_required'
+            ],
+
+
+
+
+            [
+                'question_number'=>'1',
+                'question_part'=>'c',
+                'parent_question_number'=>'1',
+                'topic'=>'Algebra',
+                'max_marks'=>2,
+                'ai_marks'=>1,
+                'confidence'=>'medium',
+                'feedback'=>'Partial solution identified.',
+                'criteria'=>[
+                    [
+                        'label'=>'Relevant approach',
+                        'awarded'=>true
+                    ]
+                ],
+                'status'=>'review_required'
+            ],
+
+
+
+
+            [
+                'question_number'=>'2',
+                'question_part'=>'a',
+                'parent_question_number'=>'2',
+                'topic'=>'Calculus',
+                'max_marks'=>4,
+                'ai_marks'=>4,
+                'confidence'=>'high',
+                'feedback'=>'Correct differentiation steps.',
+                'criteria'=>[
+                    [
+                        'label'=>'Correct derivative',
+                        'awarded'=>true
+                    ]
+                ],
+                'status'=>'ai_checked'
+            ],
+
+
+
+
+            [
+                'question_number'=>'2',
+                'question_part'=>'b',
+                'parent_question_number'=>'2',
+                'topic'=>'Calculus',
+                'max_marks'=>4,
+                'ai_marks'=>3,
+                'confidence'=>'high',
+                'feedback'=>'Minor calculation error found.',
+                'criteria'=>[
+                    [
+                        'label'=>'Correct process',
+                        'awarded'=>true
+                    ]
+                ],
+                'status'=>'ai_checked'
+            ]
+
+        ];
+
+
+
+
+
+        $obtained =
+            array_sum(
+                array_column(
+                    $questions,
+                    'ai_marks'
+                )
+            );
+
+
+
+        $maximum =
+            array_sum(
+                array_column(
+                    $questions,
+                    'max_marks'
+                )
+            );
+
+
+
+        $percentage =
+            round(
+                $obtained / max(1,$maximum) * 100,
+                2
+            );
+
+
+
+
+
+        return [
+
+            'questions'=>$questions,
+
+
+            'percentage'=>$percentage,
+
+
+            'grade'=>
+
+                $percentage >= 90 ? 'A+' :
+
+                (
+                    $percentage >= 80 ? 'A' :
+
+                    (
+                        $percentage >= 70 ? 'B' :
+
+                        (
+                            $percentage >= 60 ? 'C' :
+
+                            (
+                                $percentage >= 50 ? 'D' :
+
+                                'Needs Improvement'
+                            )
+                        )
+                    )
+                ),
+
+
+
+            'summary'=>[
+
+                'strengths'=>[
+                    'Good method selection',
+                    'Most answers show logical steps'
+                ],
+
+
+                'weaknesses'=>[
+                    'Review incomplete working',
+                    'Improve final explanations'
+                ],
+
+
+                'notice'=>
+                'Demo sub-question marking data generated for testing.'
+
+            ]
+
+        ];
+
+    }
+
 }

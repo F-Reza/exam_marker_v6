@@ -5,7 +5,17 @@ class PdfReportService {
  public function make(Assessment $a): string {
   $a->loadMissing('results','student');
   $lines=['EXAM MARKER - RESULT REPORT','Assessment: '.$a->title,'Student: '.($a->student?->name??'Individual User'),'Subject: '.$a->subject,'Grade/Class: '.($a->grade??'-'),'','QUESTION-WISE MARKS'];
-  foreach($a->results as $r)$lines[]=$r->question_number.'  '.($r->teacher_marks??$r->ai_marks).' / '.$r->max_marks.'  '.preg_replace('/\s+/',' ',(string)$r->feedback);
+  $results=$a->results
+    ->sortBy(function($r){
+
+        preg_match('/\d+/', $r->question_number,$m);
+
+        return (int)($m[0] ?? 0);
+
+    });
+
+
+foreach($results as $r) $lines[]=$r->question_number.'  '.($r->teacher_marks??$r->ai_marks).' / '.$r->max_marks.'  '.preg_replace('/\s+/',' ',(string)$r->feedback);
   $obt=$a->results->sum(fn($r)=>(float)($r->teacher_marks??$r->ai_marks));$max=$a->results->sum(fn($r)=>(float)$r->max_marks);
   $lines[]='';$lines[]='Total: '.$obt.' / '.$max;$lines[]='Percentage: '.($a->percentage??round($obt/max(1,$max)*100,1)).'%';$lines[]='Grade: '.($a->grade_awarded??'-');
   return $this->simplePdf($lines);

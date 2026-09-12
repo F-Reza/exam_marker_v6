@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 11, 2026 at 10:09 PM
+-- Generation Time: Sep 13, 2026 at 01:15 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -72,13 +72,6 @@ CREATE TABLE `assessments` (
   `report_version` int(10) UNSIGNED NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `assessments`
---
-
-INSERT INTO `assessments` (`id`, `user_id`, `student_id`, `title`, `subject`, `grade`, `exam_board`, `assessment_date`, `total_marks`, `status`, `question_paper_path`, `mark_scheme_path`, `written_answer_path`, `ai_summary`, `percentage`, `grade_awarded`, `public_report_token`, `public_report_expires_at`, `finalised_at`, `created_at`, `updated_at`, `assigned_teacher_id`, `processing_started_at`, `processing_completed_at`, `error_message`, `report_version`) VALUES
-(1, 1, NULL, 'November 2023 Paper 1P 4PH1/1P', 'Physics', '10', 'IB', NULL, 30.00, 'review_required', 'private/papers/qp/49GbtFrna94GOa3xJGBR5iSHygSQqJchOsCr91q6.pdf', 'private/papers/ms/HCpmrwYCM3dZri5wva9Gop657FcsG6eMNploNp7O.pdf', 'private/papers/wa/uklaflpwij7APnzng1zR9To8uQ7kBa2UN2MXDiHU.pdf', '{\"strengths\":[\"Responses detected successfully.\"],\"weaknesses\":[\"1: Requires improvement\",\"2: Requires improvement\",\"3: Requires improvement\",\"4: Requires improvement\",\"5: Requires improvement\"],\"notice\":\"Official mark scheme used.\",\"document_reader\":\"local-document-reader\",\"insert_used\":true,\"engine\":\"ExamMarker Adaptive AI V7\"}', 31.67, 'U', NULL, NULL, NULL, '2026-09-11 14:05:43', '2026-09-11 14:05:48', NULL, '2026-09-11 14:05:47', '2026-09-11 14:05:48', NULL, 1);
-
 -- --------------------------------------------------------
 
 --
@@ -95,12 +88,22 @@ CREATE TABLE `assessment_attachments` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `assessment_attachments`
+-- Table structure for table `assessment_questions`
 --
 
-INSERT INTO `assessment_attachments` (`id`, `assessment_id`, `type`, `path`, `original_name`, `created_at`, `updated_at`) VALUES
-(1, 1, 'insert', 'private/papers/inserts/suVu6Pyjg7apkETNYEdLZmoPWHgZjZ15dNANalQp.pdf', '0861 English May 2026 Checkpoint Insert 1.pdf', '2026-09-11 14:05:43', '2026-09-11 14:05:43');
+CREATE TABLE `assessment_questions` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `assessment_id` bigint(20) UNSIGNED NOT NULL,
+  `question_number` varchar(255) NOT NULL,
+  `question_part` varchar(255) DEFAULT NULL,
+  `max_marks` decimal(5,2) NOT NULL,
+  `marking_points` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -120,16 +123,6 @@ CREATE TABLE `audit_logs` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `audit_logs`
---
-
-INSERT INTO `audit_logs` (`id`, `user_id`, `organisation_user_id`, `action`, `subject_type`, `subject_id`, `meta`, `ip_address`, `created_at`, `updated_at`) VALUES
-(1, 1, 1, 'assessment.created', 'App\\Models\\Assessment', 1, '{\"has_ms\":true}', '127.0.0.1', '2026-09-11 14:05:43', '2026-09-11 14:05:43'),
-(2, 1, 1, 'assessment.queued', 'App\\Models\\Assessment', 1, '[]', '127.0.0.1', '2026-09-11 14:05:47', '2026-09-11 14:05:47'),
-(3, 1, 1, 'AI_PROCESSING_STARTED', 'App\\Models\\Assessment', 1, '{\"assessment_id\":1}', '127.0.0.1', '2026-09-11 14:05:47', '2026-09-11 14:05:47'),
-(4, 1, 1, 'AI_PROCESSING_COMPLETED', 'App\\Models\\Assessment', 1, '{\"percentage\":\"31.67\"}', '127.0.0.1', '2026-09-11 14:05:48', '2026-09-11 14:05:48');
 
 -- --------------------------------------------------------
 
@@ -240,7 +233,9 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (15, '2026_08_28_092016_create_ai_settings_table', 1),
 (16, '2026_08_28_102240_add_branding_fields_to_system_settings', 1),
 (17, '2026_08_28_132046_add_transaction_id_to_payment_transactions_table', 1),
-(18, '2026_09_11_000003_add_sub_question_support', 1);
+(18, '2026_09_11_000003_add_sub_question_support', 1),
+(19, '2026_09_11_230026_create_assessment_questions_table', 1),
+(20, '2026_09_11_230745_add_writing_rubric_to_question_results', 1);
 
 -- --------------------------------------------------------
 
@@ -313,12 +308,12 @@ CREATE TABLE `payment_gateway_settings` (
 --
 
 INSERT INTO `payment_gateway_settings` (`id`, `provider`, `label`, `enabled`, `environment`, `credentials`, `options`, `created_at`, `updated_at`) VALUES
-(1, 'bkash', 'bKash Bangladesh', 0, 'sandbox', '[]', '[]', '2026-09-11 13:59:13', '2026-09-11 13:59:13'),
-(2, 'card', 'Debit / Credit Card', 0, 'sandbox', '[]', '[]', '2026-09-11 13:59:13', '2026-09-11 13:59:13'),
-(3, 'paypal', 'PayPal', 0, 'sandbox', 'eyJpdiI6IkpLTTZQRUlXNzhpU2NpblMzM1lVK1E9PSIsInZhbHVlIjoiWnBBVjhsZWpMSU8wNXR1a25mRGhjUT09IiwibWFjIjoiODc3ZWEyNjdmNzZhNWM1Y2UzMjNjOWI2ZTNmZTYyYTIwMTBiOWRhOTMzOTZkM2VmYTY2Zjg1OGYwN2E4ZTU3NSIsInRhZyI6IiJ9', '[]', '2026-09-11 13:59:13', '2026-09-11 13:59:13'),
-(4, 'payu', 'PayU', 0, 'sandbox', 'eyJpdiI6InczOEtQVC8rb29WRmRiNmNYcXZ3Znc9PSIsInZhbHVlIjoicGx0YnVqS3U4c1k1bFdVN1lJUWFvUT09IiwibWFjIjoiYzAyMDBjZmRkMjk3MTliNGQxN2JkZmZhOGRiODhkNjg4Y2YxODEwNjdjNWE0ZGE3ZmQzMjNhZTk4YTBkMTkzMiIsInRhZyI6IiJ9', '[]', '2026-09-11 13:59:13', '2026-09-11 13:59:13'),
-(5, 'phonepe', 'PhonePe', 0, 'sandbox', 'eyJpdiI6IktseW9LcnU1TndxZ2pGOENDYTBDcnc9PSIsInZhbHVlIjoia20xS0JWRHJodDhFOEVCUW5ZUExDZz09IiwibWFjIjoiYzdkMWIxYzUxNzFhNDg5MjgxNThhMDJhMGE5YjQ3NDQwMGQ4MGE1N2MyYTc5NTkzZWQ2ZDExZWI3NDNjYzg0ZSIsInRhZyI6IiJ9', '[]', '2026-09-11 13:59:13', '2026-09-11 13:59:13'),
-(6, 'paytm', 'Paytm', 0, 'sandbox', 'eyJpdiI6InlKaHR2Zmp3UmY0SzNWSlF5WTZURlE9PSIsInZhbHVlIjoiZ3VNMDJ1MkV5VUJFWmtpQ0RHVVp4UT09IiwibWFjIjoiNDFlYTg3YzZlMTM5YTg0YzllMzAxYzhmYTk2Y2UzZmI5YmFhZmJiYzc2NzNlMWQxMGVjYWFmMThiNGMyZjc2YiIsInRhZyI6IiJ9', '[]', '2026-09-11 13:59:13', '2026-09-11 13:59:13');
+(1, 'bkash', 'bKash Bangladesh', 0, 'sandbox', '[]', '[]', '2026-09-12 17:15:32', '2026-09-12 17:15:32'),
+(2, 'card', 'Debit / Credit Card', 0, 'sandbox', '[]', '[]', '2026-09-12 17:15:32', '2026-09-12 17:15:32'),
+(3, 'paypal', 'PayPal', 0, 'sandbox', 'eyJpdiI6IkpBZkJmQ1ljTlo3eE1oS1hyTUZCaVE9PSIsInZhbHVlIjoiK2J3OHNYeWV1YmNGaE1CTGw2QmViUT09IiwibWFjIjoiYWY1YTY5OTQxYjQ4MzQzMDU4OWZkYzI1ZTc3ZGZlZTcwMWI1NDdjZDE1OGFhMDJmMDFhZjMxZjNjMTI4MzFkNyIsInRhZyI6IiJ9', '[]', '2026-09-12 17:15:32', '2026-09-12 17:15:32'),
+(4, 'payu', 'PayU', 0, 'sandbox', 'eyJpdiI6IkpSQWxNNFdxazg5WTVHTm0yaTNHWHc9PSIsInZhbHVlIjoia3JMZTBaZVFPamw3aHV0emZJQ1o2UT09IiwibWFjIjoiMDllYzRjNGFkNmE2ZWIzNTkwYTFkNTE1ZmIyNzhkNzg4YTNmOWM3ZjU1ZDQ1MmY2MDUxZjNlNWM1NmU1ZmNhNyIsInRhZyI6IiJ9', '[]', '2026-09-12 17:15:32', '2026-09-12 17:15:32'),
+(5, 'phonepe', 'PhonePe', 0, 'sandbox', 'eyJpdiI6IjJBbzl4czl2TitCK1lDRlBrVmRuQ3c9PSIsInZhbHVlIjoic0tzbTVVNHdvaXgrSlM2bnhlSXJZQT09IiwibWFjIjoiYzNmYmNjNDcxOWMzZTczZjM2ZGI1OTQ0ZmIzMzY0YWMzY2JmYzQxMDk5N2IyMTE0ZGExZDEyNjUwNzIwNDYxMCIsInRhZyI6IiJ9', '[]', '2026-09-12 17:15:32', '2026-09-12 17:15:32'),
+(6, 'paytm', 'Paytm', 0, 'sandbox', 'eyJpdiI6IjMyZ1BtT2NBcC80M2E3VUFWcE0rS2c9PSIsInZhbHVlIjoieVByQXNmZHdjdWZRWWRlbUcyd2E1UT09IiwibWFjIjoiZGYzY2JlM2ExMGQ5OTk0Y2RmYTRlOTBjNzM5OGRlMGI2ZWM3ODU4ZTE4ZjVlZGM5NGFkYzg3ZWYwNWI5OGNmMSIsInRhZyI6IiJ9', '[]', '2026-09-12 17:15:32', '2026-09-12 17:15:32');
 
 -- --------------------------------------------------------
 
@@ -367,10 +362,10 @@ CREATE TABLE `plans` (
 --
 
 INSERT INTO `plans` (`id`, `name`, `slug`, `price`, `billing_period`, `features`, `limits`, `active`, `created_at`, `updated_at`) VALUES
-(1, 'Free Mode', 'free', 0.00, 'lifetime', '{\"percentage\":false,\"grade\":false,\"graphs\":false,\"topic_analysis\":false,\"manual_mark_editing\":false,\"feedback_editing\":false,\"question_recheck\":false,\"result_report_download\":false,\"corrected_paper_download\":false,\"bulk_answer_upload\":false,\"bulk_student_import\":false,\"student_records\":false,\"parent_details\":false,\"parent_email\":false,\"parent_sms\":false,\"multiple_teachers\":false,\"teacher_assignment\":false,\"custom_branding\":false,\"student_portal\":false,\"parent_portal\":false}', '{\"paper_check_limit\":1,\"student_limit\":1,\"teacher_limit\":1,\"email_limit\":0,\"sms_limit\":0}', 1, '2026-09-11 13:59:13', '2026-09-11 13:59:13'),
-(2, 'Mode 1 - Basic', 'mode-1', 399.00, 'monthly', '{\"percentage\":false,\"grade\":false,\"graphs\":false,\"topic_analysis\":false,\"manual_mark_editing\":false,\"feedback_editing\":false,\"question_recheck\":false,\"result_report_download\":false,\"corrected_paper_download\":false,\"bulk_answer_upload\":false,\"bulk_student_import\":false,\"student_records\":true,\"parent_details\":false,\"parent_email\":false,\"parent_sms\":false,\"multiple_teachers\":false,\"teacher_assignment\":false,\"custom_branding\":false,\"student_portal\":false,\"parent_portal\":false}', '{\"paper_check_limit\":10,\"student_limit\":5,\"teacher_limit\":1,\"email_limit\":0,\"sms_limit\":0}', 1, '2026-09-11 13:59:13', '2026-09-11 13:59:13'),
-(3, 'Mode 2 - Professional', 'mode-2', 999.00, 'monthly', '{\"percentage\":true,\"grade\":true,\"graphs\":true,\"topic_analysis\":true,\"manual_mark_editing\":true,\"feedback_editing\":true,\"question_recheck\":true,\"result_report_download\":true,\"corrected_paper_download\":false,\"bulk_answer_upload\":true,\"bulk_student_import\":true,\"student_records\":true,\"parent_details\":false,\"parent_email\":false,\"parent_sms\":false,\"multiple_teachers\":false,\"teacher_assignment\":false,\"custom_branding\":false,\"student_portal\":false,\"parent_portal\":false}', '{\"paper_check_limit\":50,\"student_limit\":25,\"teacher_limit\":1,\"email_limit\":0,\"sms_limit\":0,\"recheck_limit\":100}', 1, '2026-09-11 13:59:13', '2026-09-11 13:59:13'),
-(4, 'Mode 3 - Premium', 'mode-3', 1999.00, 'monthly', '{\"percentage\":true,\"grade\":true,\"graphs\":true,\"topic_analysis\":true,\"manual_mark_editing\":true,\"feedback_editing\":true,\"question_recheck\":true,\"result_report_download\":true,\"corrected_paper_download\":true,\"bulk_answer_upload\":true,\"bulk_student_import\":true,\"student_records\":true,\"parent_details\":true,\"parent_email\":true,\"parent_sms\":true,\"multiple_teachers\":true,\"teacher_assignment\":true,\"custom_branding\":false,\"student_portal\":false,\"parent_portal\":false}', '{\"paper_check_limit\":200,\"student_limit\":100,\"teacher_limit\":10,\"email_limit\":200,\"sms_limit\":200,\"recheck_limit\":500}', 1, '2026-09-11 13:59:13', '2026-09-11 13:59:13');
+(1, 'Free Mode', 'free', 0.00, 'lifetime', '{\"percentage\":false,\"grade\":false,\"graphs\":false,\"topic_analysis\":false,\"manual_mark_editing\":false,\"feedback_editing\":false,\"question_recheck\":false,\"result_report_download\":false,\"corrected_paper_download\":false,\"bulk_answer_upload\":false,\"bulk_student_import\":false,\"student_records\":false,\"parent_details\":false,\"parent_email\":false,\"parent_sms\":false,\"multiple_teachers\":false,\"teacher_assignment\":false,\"custom_branding\":false,\"student_portal\":false,\"parent_portal\":false}', '{\"paper_check_limit\":1,\"student_limit\":1,\"teacher_limit\":1,\"email_limit\":0,\"sms_limit\":0}', 1, '2026-09-12 17:15:32', '2026-09-12 17:15:32'),
+(2, 'Mode 1 - Basic', 'mode-1', 399.00, 'monthly', '{\"percentage\":false,\"grade\":false,\"graphs\":false,\"topic_analysis\":false,\"manual_mark_editing\":false,\"feedback_editing\":false,\"question_recheck\":false,\"result_report_download\":false,\"corrected_paper_download\":false,\"bulk_answer_upload\":false,\"bulk_student_import\":false,\"student_records\":true,\"parent_details\":false,\"parent_email\":false,\"parent_sms\":false,\"multiple_teachers\":false,\"teacher_assignment\":false,\"custom_branding\":false,\"student_portal\":false,\"parent_portal\":false}', '{\"paper_check_limit\":10,\"student_limit\":5,\"teacher_limit\":1,\"email_limit\":0,\"sms_limit\":0}', 1, '2026-09-12 17:15:32', '2026-09-12 17:15:32'),
+(3, 'Mode 2 - Professional', 'mode-2', 999.00, 'monthly', '{\"percentage\":true,\"grade\":true,\"graphs\":true,\"topic_analysis\":true,\"manual_mark_editing\":true,\"feedback_editing\":true,\"question_recheck\":true,\"result_report_download\":true,\"corrected_paper_download\":false,\"bulk_answer_upload\":true,\"bulk_student_import\":true,\"student_records\":true,\"parent_details\":false,\"parent_email\":false,\"parent_sms\":false,\"multiple_teachers\":false,\"teacher_assignment\":false,\"custom_branding\":false,\"student_portal\":false,\"parent_portal\":false}', '{\"paper_check_limit\":50,\"student_limit\":25,\"teacher_limit\":1,\"email_limit\":0,\"sms_limit\":0,\"recheck_limit\":100}', 1, '2026-09-12 17:15:32', '2026-09-12 17:15:32'),
+(4, 'Mode 3 - Premium', 'mode-3', 1999.00, 'monthly', '{\"percentage\":true,\"grade\":true,\"graphs\":true,\"topic_analysis\":true,\"manual_mark_editing\":true,\"feedback_editing\":true,\"question_recheck\":true,\"result_report_download\":true,\"corrected_paper_download\":true,\"bulk_answer_upload\":true,\"bulk_student_import\":true,\"student_records\":true,\"parent_details\":true,\"parent_email\":true,\"parent_sms\":true,\"multiple_teachers\":true,\"teacher_assignment\":true,\"custom_branding\":false,\"student_portal\":false,\"parent_portal\":false}', '{\"paper_check_limit\":200,\"student_limit\":100,\"teacher_limit\":10,\"email_limit\":200,\"sms_limit\":200,\"recheck_limit\":500}', 1, '2026-09-12 17:15:32', '2026-09-12 17:15:32');
 
 -- --------------------------------------------------------
 
@@ -396,34 +391,9 @@ CREATE TABLE `question_results` (
   `recheck_count` int(10) UNSIGNED NOT NULL DEFAULT 0,
   `last_rechecked_at` timestamp NULL DEFAULT NULL,
   `question_part` varchar(255) DEFAULT NULL,
-  `parent_question_number` varchar(255) DEFAULT NULL
+  `parent_question_number` varchar(255) DEFAULT NULL,
+  `writing_rubric` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`writing_rubric`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `question_results`
---
-
-INSERT INTO `question_results` (`id`, `assessment_id`, `question_number`, `topic`, `max_marks`, `ai_marks`, `teacher_marks`, `confidence`, `feedback`, `criteria`, `teacher_comment`, `status`, `created_at`, `updated_at`, `recheck_count`, `last_rechecked_at`, `question_part`, `parent_question_number`) VALUES
-(1, 1, '1', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(2, 1, '2', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(3, 1, '1', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(4, 1, '2', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(5, 1, '3', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(6, 1, '3', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(7, 1, '4', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(8, 1, '5', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(9, 1, '4', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(10, 1, '6', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(11, 1, '7', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(12, 1, '8', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(13, 1, '5', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(14, 1, '9', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(15, 1, '10', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(16, 1, '1', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(17, 1, '6', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(18, 1, '11', 'Physics', 1.50, 0.00, NULL, 'low', 'No readable answer detected.', '[{\"label\":\"Answer detected\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(19, 1, '7', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL),
-(20, 1, '8', 'Physics', 1.50, 0.50, NULL, 'low', 'Limited evidence found. Teacher review required.', '[{\"label\":\"Relevant concepts\",\"awarded\":false},{\"label\":\"Complete explanation\",\"awarded\":true},{\"label\":\"Mark scheme alignment\",\"awarded\":false}]', NULL, 'review_required', '2026-09-11 14:05:48', '2026-09-11 14:05:48', 0, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -439,13 +409,6 @@ CREATE TABLE `sessions` (
   `payload` longtext NOT NULL,
   `last_activity` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `sessions`
---
-
-INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('3ekmXitKV9zslNh1EAt3CwuzhY1ZemOXVYxsmMQ5', 1, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:155.0) Gecko/20100101 Firefox/155.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoiaHd1R3dCczRDaG1jUThUeW1kbmc2NVNZQTg2QmtNY1NIQkJhWTkzTCI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjI6e3M6MzoidXJsIjtzOjQzOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXNzZXNzbWVudHMvMS9yZXN1bHRzIjtzOjU6InJvdXRlIjtzOjEyOiJyZXN1bHRzLnNob3ciO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToxO30=', 1789157157);
 
 -- --------------------------------------------------------
 
@@ -473,7 +436,7 @@ CREATE TABLE `students` (
 --
 
 INSERT INTO `students` (`id`, `user_id`, `name`, `roll_number`, `grade`, `parent_name`, `parent_email`, `parent_mobile`, `alternate_contact`, `created_at`, `updated_at`, `login_user_id`) VALUES
-(1, 5, 'Aarav Sharma', '101', '10', 'Rahul Sharma', 'parent@example.com', '9876543210', NULL, '2026-09-11 13:59:15', '2026-09-11 13:59:15', 7);
+(1, 5, 'Aarav Sharma', '101', '10', 'Rahul Sharma', 'parent@example.com', '9876543210', NULL, '2026-09-12 17:15:34', '2026-09-12 17:15:34', 7);
 
 -- --------------------------------------------------------
 
@@ -552,14 +515,6 @@ CREATE TABLE `usage_records` (
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `usage_records`
---
-
-INSERT INTO `usage_records` (`id`, `user_id`, `type`, `quantity`, `reference_type`, `reference_id`, `meta`, `created_at`, `updated_at`) VALUES
-(1, 1, 'assessment_upload', 1.00, 'App\\Models\\Assessment', 1, NULL, '2026-09-11 14:05:43', '2026-09-11 14:05:43'),
-(2, 1, 'paper_processed', 1.00, 'App\\Models\\Assessment', 1, NULL, '2026-09-11 14:05:48', '2026-09-11 14:05:48');
-
 -- --------------------------------------------------------
 
 --
@@ -593,13 +548,13 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `owner_user_id`, `plan_id`, `name`, `email`, `mobile`, `email_verified_at`, `password`, `user_type`, `organisation_name`, `avatar_path`, `notification_preferences`, `is_admin`, `free_check_used`, `remember_token`, `created_at`, `updated_at`, `account_status`, `role_title`) VALUES
-(1, NULL, 4, 'Platform Admin', 'admin@example.com', '9000000001', NULL, '$2y$12$/5n.Mlp4O6fVoCUesVi78uBHXTWdnK2Qu.xf8GrLNL9JIOTt7FBNG', 'coaching', 'Exam Marker', NULL, NULL, 1, 0, NULL, '2026-09-11 13:59:14', '2026-09-11 13:59:14', 'active', NULL),
-(2, NULL, 1, 'Free Teacher', 'free.teacher@example.com', '9000000002', NULL, '$2y$12$AFKiMDdniCDJYVW/eS44A.UkCSWVMQFS.47tiu.G2Y7lItZm4lvty', 'teacher', NULL, NULL, NULL, 0, 0, NULL, '2026-09-11 13:59:14', '2026-09-11 13:59:14', 'active', NULL),
-(3, NULL, 2, 'Mode 1 User', 'mode1@example.com', '9000000003', NULL, '$2y$12$U1cU3NYGUa9lPtuDf4GhmuHOAoA2oHfMY8oxQpJsNmhyj3L969cDe', 'teacher', NULL, NULL, NULL, 0, 0, NULL, '2026-09-11 13:59:14', '2026-09-11 13:59:14', 'active', NULL),
-(4, NULL, 3, 'Mode 2 Teacher', 'mode2@example.com', '9000000004', NULL, '$2y$12$kiPFaihFmww31213SyWsJ.6AVzCFXppDkqemh2e4b7LuYtnLx4PHW', 'teacher', NULL, NULL, NULL, 0, 0, NULL, '2026-09-11 13:59:14', '2026-09-11 13:59:14', 'active', NULL),
-(5, NULL, 4, 'Mode 3 Coaching Admin', 'mode3@example.com', '9000000005', NULL, '$2y$12$4hcL20oX.bU67KZ54eOfzehN.9Mwc8T6PjfQBpx4cYS.Uv0me6XTG', 'coaching', 'Demo Coaching Class', NULL, NULL, 0, 0, NULL, '2026-09-11 13:59:15', '2026-09-11 13:59:15', 'active', NULL),
-(6, 5, 4, 'Mode 3 Teacher', 'mode3.teacher@example.com', '9000000006', NULL, '$2y$12$NDN1LVeEzj3iXi2enCChZu6WOHHxt8e2ZypsVvQEA4DMZzDqqQxbG', 'teacher', NULL, NULL, NULL, 0, 0, NULL, '2026-09-11 13:59:15', '2026-09-11 13:59:15', 'active', 'Mathematics Teacher'),
-(7, NULL, 1, 'Aarav Sharma', 'student@example.com', '9000000007', NULL, '$2y$12$nDjanD7qazOWauuLvKomeusp3.o0zD0E5NmvVBaA7Wh.ttWKjc81a', 'student', NULL, NULL, NULL, 0, 0, NULL, '2026-09-11 13:59:15', '2026-09-11 13:59:15', 'active', NULL);
+(1, NULL, 4, 'Platform Admin', 'admin@example.com', '9000000001', NULL, '$2y$12$sOvr3XMwFr3zxoaSDSa8euhheDAT1jBk8GaKBGIvBX1jW/3NfaJvq', 'coaching', 'Exam Marker', NULL, NULL, 1, 0, NULL, '2026-09-12 17:15:33', '2026-09-12 17:15:33', 'active', NULL),
+(2, NULL, 1, 'Free Teacher', 'free.teacher@example.com', '9000000002', NULL, '$2y$12$.f4Ketdmk/Qju7vmNtEBme7IcCXtioUcFeXTdumHpYqVKt3mumgdq', 'teacher', NULL, NULL, NULL, 0, 0, NULL, '2026-09-12 17:15:33', '2026-09-12 17:15:33', 'active', NULL),
+(3, NULL, 2, 'Mode 1 User', 'mode1@example.com', '9000000003', NULL, '$2y$12$zFZkglfk5cGwP1WPNcIAO.w2T4rjobayLdwkwJ.drkThWmoZyXO1y', 'teacher', NULL, NULL, NULL, 0, 0, NULL, '2026-09-12 17:15:33', '2026-09-12 17:15:33', 'active', NULL),
+(4, NULL, 3, 'Mode 2 Teacher', 'mode2@example.com', '9000000004', NULL, '$2y$12$P3wI6.TNU1W3ivQlevcUGuuY291Ij2x5NnlQ62QUfxvaUmjSWVBQG', 'teacher', NULL, NULL, NULL, 0, 0, NULL, '2026-09-12 17:15:33', '2026-09-12 17:15:33', 'active', NULL),
+(5, NULL, 4, 'Mode 3 Coaching Admin', 'mode3@example.com', '9000000005', NULL, '$2y$12$Xb17y6GJ4iVqJz0z1M7g.uaNRYxPVoqiKaphiqnzvKcCQmOH7Jntq', 'coaching', 'Demo Coaching Class', NULL, NULL, 0, 0, NULL, '2026-09-12 17:15:34', '2026-09-12 17:15:34', 'active', NULL),
+(6, 5, 4, 'Mode 3 Teacher', 'mode3.teacher@example.com', '9000000006', NULL, '$2y$12$IJsx2XqX9CcONcXDgw846OvWV0DtJAV7/rHllFCrHYr0fQFbDM0ee', 'teacher', NULL, NULL, NULL, 0, 0, NULL, '2026-09-12 17:15:34', '2026-09-12 17:15:34', 'active', 'Mathematics Teacher'),
+(7, NULL, 1, 'Aarav Sharma', 'student@example.com', '9000000007', NULL, '$2y$12$DN9dFy4RrXOTKDI1PkaXx.moiLa2nFEijxjm0TazwESyJOSnFeYiq', 'student', NULL, NULL, NULL, 0, 0, NULL, '2026-09-12 17:15:34', '2026-09-12 17:15:34', 'active', NULL);
 
 --
 -- Indexes for dumped tables
@@ -627,6 +582,13 @@ ALTER TABLE `assessments`
 ALTER TABLE `assessment_attachments`
   ADD PRIMARY KEY (`id`),
   ADD KEY `assessment_attachments_assessment_id_foreign` (`assessment_id`);
+
+--
+-- Indexes for table `assessment_questions`
+--
+ALTER TABLE `assessment_questions`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `assessment_questions_assessment_id_foreign` (`assessment_id`);
 
 --
 -- Indexes for table `audit_logs`
@@ -795,19 +757,25 @@ ALTER TABLE `ai_settings`
 -- AUTO_INCREMENT for table `assessments`
 --
 ALTER TABLE `assessments`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `assessment_attachments`
 --
 ALTER TABLE `assessment_attachments`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `assessment_questions`
+--
+ALTER TABLE `assessment_questions`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `failed_jobs`
@@ -825,7 +793,7 @@ ALTER TABLE `jobs`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `parent_communications`
@@ -855,7 +823,7 @@ ALTER TABLE `plans`
 -- AUTO_INCREMENT for table `question_results`
 --
 ALTER TABLE `question_results`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `students`
@@ -885,7 +853,7 @@ ALTER TABLE `team_members`
 -- AUTO_INCREMENT for table `usage_records`
 --
 ALTER TABLE `usage_records`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -910,6 +878,12 @@ ALTER TABLE `assessments`
 --
 ALTER TABLE `assessment_attachments`
   ADD CONSTRAINT `assessment_attachments_assessment_id_foreign` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `assessment_questions`
+--
+ALTER TABLE `assessment_questions`
+  ADD CONSTRAINT `assessment_questions_assessment_id_foreign` FOREIGN KEY (`assessment_id`) REFERENCES `assessments` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `audit_logs`

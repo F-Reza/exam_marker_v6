@@ -7,7 +7,7 @@
         <p>Upload a Question Paper, optional Mark Scheme and Written Answer Paper. Receive question-wise marks, feedback
             and performance insights.</p>
         <div class="hero-actions"><a class="btn" style="color: ghostwhite; font-weight: 600;" href="{{route('register')}}">Register & Check First Paper Free</a><a
-                class="btn ghost" href="{{route('pricing')}}">View Plans</a></div>
+                class="btn ghost ghost-btn" href="{{route('pricing')}}">View Plans</a></div>
         <div class="trust-row"><span>✓ PDF & Word</span><span>✓ Secure uploads</span><span>✓ Teacher review</span></div>
     </div>
     <div class="hero-visual">
@@ -66,6 +66,6 @@
     <div><span class="eyebrow">READY TO START?</span>
         <h2>Check your first paper free.</h2>
         <p>No payment required for the first lifetime check.</p>
-    </div><a class="btn light" href="{{route('register')}}">Create Free Account</a>
+    </div><a class="btn light light-btn" href="{{route('register')}}">Create Free Account</a>
 </section>
 @endsection

@@ -11,21 +11,17 @@ use App\Models\SystemSetting;
 use App\Models\AiSetting;
 
 
-use App\Services\{
-    PaperMarker,
-    AdaptivePaperMarker,
-    AIPaperMarker
-};
+use App\Services\PaperMarker;
+use App\Services\AdaptivePaperMarker;
+use App\Services\AIPaperMarker;
 
 
 use App\Contracts\DocumentReader;
 
 
-use App\Services\Ocr\{
-    DemoDocumentReader,
-    ProductionDocumentReader,
-    LocalDocumentReader
-};
+use App\Services\Ocr\DemoDocumentReader;
+use App\Services\Ocr\ProductionDocumentReader;
+use App\Services\Ocr\LocalDocumentReader;
 
 
 
@@ -37,18 +33,18 @@ class AppServiceProvider extends ServiceProvider
     {
 
 
-
         /*
         |--------------------------------------------------------------------------
         | Document Reader / OCR Engine
         |--------------------------------------------------------------------------
         */
 
+
         $this->app->bind(
             DocumentReader::class,
             function(){
 
-                $mode=config(
+                $mode = config(
                     'exam-marker.ocr',
                     'local'
                 );
@@ -82,14 +78,14 @@ class AppServiceProvider extends ServiceProvider
 
         /*
         |--------------------------------------------------------------------------
-        | AI Paper Marker Provider
+        | Paper Marker Engine
         |--------------------------------------------------------------------------
         |
-        | Admin can change provider from:
+        | Active AI setting  -> AIPaperMarker
+        | No AI setting      -> AdaptivePaperMarker
+        | Disabled AI        -> AdaptivePaperMarker
         |
-        | Platform Admin
-        | → AI Provider Settings
-        |
+        |--------------------------------------------------------------------------
         */
 
 
@@ -98,21 +94,26 @@ class AppServiceProvider extends ServiceProvider
             function(){
 
 
-
                 $setting = AiSetting::first();
 
 
 
                 /*
                 |--------------------------------------------------------------------------
-                | Default
+                | No AI configuration
                 |--------------------------------------------------------------------------
                 */
 
+
                 if(!$setting)
                 {
-                    return app(AdaptivePaperMarker::class);
+
+                    return app(
+                        AdaptivePaperMarker::class
+                    );
+
                 }
+
 
 
 
@@ -120,18 +121,31 @@ class AppServiceProvider extends ServiceProvider
 
                 /*
                 |--------------------------------------------------------------------------
-                | AI Disabled
+                | AI disabled
                 |--------------------------------------------------------------------------
                 */
 
+
                 if($setting->status !== 'active')
                 {
-                    return app(AdaptivePaperMarker::class);
+
+                    return app(
+                        AdaptivePaperMarker::class
+                    );
+
                 }
 
 
 
 
+
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | Active AI Provider
+                |--------------------------------------------------------------------------
+                */
 
 
                 return match($setting->provider)
@@ -142,36 +156,34 @@ class AppServiceProvider extends ServiceProvider
                     'gemini',
                     'claude',
                     'azure',
-                    'openrouter'
-                        =>
-                        app(AIPaperMarker::class),
-
-
-
-
+                    'openrouter',
                     'ollama'
                         =>
-                        app(AIPaperMarker::class),
+                        app(
+                            AIPaperMarker::class
+                        ),
 
 
 
 
                     default
                         =>
-                        app(AdaptivePaperMarker::class),
-
+                        app(
+                            AdaptivePaperMarker::class
+                        ),
 
 
                 };
-
 
 
             }
         );
 
 
-
     }
+
+
+
 
 
 
@@ -183,30 +195,26 @@ class AppServiceProvider extends ServiceProvider
     {
 
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Global Website Settings
-        |--------------------------------------------------------------------------
-        */
+        View::composer(
+            '*',
+            function($view){
 
 
-        View::composer('*',function($view){
+                $settings =
+                    SystemSetting::pluck(
+                        'value',
+                        'key'
+                    );
 
 
-            $settings =
-            SystemSetting::pluck('value','key');
+                $view->with(
+                    'systemSettings',
+                    $settings
+                );
 
 
-
-            $view->with(
-                'systemSettings',
-                $settings
-            );
-
-
-        });
-
+            }
+        );
 
 
     }
