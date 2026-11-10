@@ -119,7 +119,7 @@
 
                 @if(Route::has($supportRoute) && $currentUser->canAccessModule('support'))
                 <a href="{{route($supportRoute)}}"
-                    class="{{ request()->routeIs($supportRoute) ? 'active' : '' }}">
+                    class="{{ request()->routeIs($currentUser->isPlatformAdmin() ? 'admin.support.*' : 'help.*') ? 'active' : '' }}">
                     📩 Support Center
                 </a>
                 @endif

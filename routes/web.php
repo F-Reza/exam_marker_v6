@@ -299,6 +299,9 @@ Route::middleware(['auth', 'verified'])->group(function() {
 
     Route::get('/help', [HelpController::class, 'index'])->name('help.index');
     Route::post('/help', [HelpController::class, 'store'])->name('help.store');
+    Route::get('/help/{ticket}', [HelpController::class, 'show'])->name('help.show');
+    Route::post('/help/{ticket}/messages', [HelpController::class, 'reply'])->name('help.reply');
+    Route::patch('/help/{ticket}/status', [HelpController::class, 'status'])->name('help.status');
 
     /*
     |--------------------------------------------------------------------------
@@ -361,6 +364,7 @@ Route::middleware(['auth', 'verified'])->group(function() {
         | Support
         */
         Route::get('/support', [SupportController::class, 'index'])->name('support.index');
+        Route::get('/support/{ticket}', [SupportController::class, 'show'])->name('support.show');
         Route::put('/support/{ticket}', [SupportController::class, 'reply'])->name('support.reply');
 
         /*

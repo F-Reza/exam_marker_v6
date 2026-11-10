@@ -119,7 +119,7 @@
 
                 <?php if(Route::has($supportRoute) && $currentUser->canAccessModule('support')): ?>
                 <a href="<?php echo e(route($supportRoute)); ?>"
-                    class="<?php echo e(request()->routeIs($supportRoute) ? 'active' : ''); ?>">
+                    class="<?php echo e(request()->routeIs($currentUser->isPlatformAdmin() ? 'admin.support.*' : 'help.*') ? 'active' : ''); ?>">
                     📩 Support Center
                 </a>
                 <?php endif; ?>
