@@ -19,7 +19,7 @@ class AdaptivePaperMarker implements PaperMarker, QuestionScopedMarker
         $questions = $structure->parse($docs['qp_text'], (float) $assessment->total_marks, $docs['ms_text']);
         $labels = array_column($questions, 'label');
         $answers = $structure->sections($docs['wa_text'], $labels);
-        $schemes = $structure->sections($docs['ms_text'], $labels);
+        $schemes = $structure->schemeSections($docs['ms_text'], $questions);
         $rows = [];
         foreach ($questions as $question) {
             $rows[] = $this->row($assessment, $question, $answers[$question['label']], $schemes[$question['label']], $docs['insert_text']);
@@ -52,7 +52,7 @@ class AdaptivePaperMarker implements PaperMarker, QuestionScopedMarker
         }
         return $this->row($assessment, $target,
             $structure->sections($docs['wa_text'], [$label])[$label],
-            $structure->sections($docs['ms_text'], [$label])[$label], $docs['insert_text']);
+            $structure->schemeSections($docs['ms_text'], $questions)[$label], $docs['insert_text']);
     }
 
     private function documents(Assessment $assessment): array

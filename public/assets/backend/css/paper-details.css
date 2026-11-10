@@ -1,0 +1,55 @@
+.paper-detail-head-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.paper-detail-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.paper-detail-buttons:empty { display: none; }
+
+.paper-edit-dialog {
+    width: min(720px, calc(100% - 32px));
+    max-height: calc(100dvh - 40px);
+    margin: auto;
+    padding: 0;
+    border: 1px solid #dce5f2;
+    border-radius: 16px;
+    color: #13213f;
+    background: #fff;
+    box-shadow: 0 24px 80px #071a4433;
+    overflow-y: auto;
+}
+.paper-edit-dialog:not([open]) { display: none; }
+.paper-edit-dialog::backdrop { background: #071a4473; }
+.paper-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 22px; border-bottom: 1px solid #dce5f2; }
+.paper-dialog-head h2 { margin: 0; font-size: 1.1rem; }
+.paper-dialog-close { display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 8px; background: #f1f5fb; color: #334155; font-size: 1.5rem; cursor: pointer; }
+.paper-dialog-close:hover { background: #e4ecf7; }
+.paper-dialog-close:focus-visible { outline: 2px solid #1557d5; outline-offset: 2px; }
+
+.paper-option-note {
+    margin: 0;
+    color: #64748b;
+    font-size: .82rem;
+    line-height: 1.6;
+}
+
+.paper-option-form {
+    display: grid;
+    gap: 16px;
+    padding: 22px;
+}
+.paper-option-form .alert { margin: 0; }
+
+.paper-option-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.paper-option-form label { display: grid; min-width: 0; gap: 8px; font-size: .82rem; }
+.paper-option-form .input { margin: 0; min-width: 0; max-width: 100%; }
+.paper-option-form input[type="file"] { padding: 8px; font-size: .78rem; background: #fbfdff; }
+.paper-option-form input[type="file"]::file-selector-button { margin-right: 10px; padding: 7px 10px; border: 0; border-radius: 5px; background: #eaf1ff; color: #1557d5; cursor: pointer; }
+.paper-option-form .paper-option-check { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.paper-option-check input { margin: 0; flex: 0 0 auto; }
+.paper-option-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+@media (max-width: 640px) {
+    .detail-head { align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+    .paper-detail-head-actions { align-items: flex-start; }
+    .paper-detail-buttons { justify-content: flex-start; }
+    .paper-dialog-head, .paper-option-form { padding: 16px; }
+    .paper-option-grid { grid-template-columns: 1fr; }
+    .paper-option-actions .btn { width: 100%; }
+}

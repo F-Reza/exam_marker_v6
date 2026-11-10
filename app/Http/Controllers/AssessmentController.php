@@ -46,7 +46,14 @@ class AssessmentController extends Controller {
   $assessment=app(\App\Services\AssessmentUploadService::class)->create($user,$data,$request->allFiles())[0];
   return redirect()->route('assessments.show',$assessment)->with('success','QP, optional MS, inserts and WA uploaded successfully. Review and start checking.');
  }
- public function show(Assessment $assessment){ $this->authorizeAssessment($assessment); return view('assessments.show',compact('assessment')); }
+ public function show(Assessment $assessment){
+  $this->authorizeAssessment($assessment);
+  $user=request()->user();
+  $canAllocateTeacher=$user->canAccessModule('teacher-assignment') && ($user->isPlatformAdmin() || $assessment->user_id===$user->id);
+  $eligibleTeachers=$canAllocateTeacher?User::where('owner_user_id',$assessment->user_id)->where('user_type','teacher')->where('account_status','active')->orderBy('name')->get(['id','name']):collect();
+  if($canAllocateTeacher) $assessment->loadMissing('assignedTeacher');
+  return view('assessments.show',compact('assessment','canAllocateTeacher','eligibleTeachers'));
+ }
  public function start(Assessment $assessment, AuditService $audit){
   $this->authorizeAssessment($assessment);
   abort_if(request()->user()->isStudent() && !request()->user()->isPlatformAdmin() && $assessment->user_id!==request()->user()->id,403,'Students can only start checking their own uploaded papers.');
@@ -72,17 +79,19 @@ class AssessmentController extends Controller {
  }
  public function replaceDocuments(Request $request,Assessment $assessment){
   $this->authorizeAssessment($assessment);
-  $rules=['question_paper'=>['nullable','file','max:51200',new ExamDocument],'mark_scheme'=>['nullable','file','max:51200',new ExamDocument],'written_answer'=>['nullable','file','max:51200',new ExamDocument],'inserts'=>'nullable|array|max:5','inserts.*'=>['file','max:51200',new ExamDocument],'remove_mark_scheme'=>'nullable|boolean'];
-  $request->validate($rules);abort_if(!$request->allFiles()&&!$request->boolean('remove_mark_scheme'),422,'Select a document to replace.');$new=[];$old=[];
+  $rules=['question_paper'=>['nullable','file','max:51200',new ExamDocument],'mark_scheme'=>['nullable','file','max:51200',new ExamDocument],'written_answer'=>['nullable','file','max:51200',new ExamDocument],'inserts'=>'nullable|array|max:5','inserts.*'=>['file','max:51200',new ExamDocument],'remove_mark_scheme'=>'nullable|boolean','total_marks'=>'nullable|numeric|min:1|max:1000'];
+  $data=$request->validate($rules);$totalChanged=isset($data['total_marks'])&&abs((float)$data['total_marks']-(float)$assessment->total_marks)>0.001;
+  if(!$request->allFiles()&&!$request->boolean('remove_mark_scheme')&&!$totalChanged)throw \Illuminate\Validation\ValidationException::withMessages(['total_marks'=>'Change the total marks or select a document to replace.']);$new=[];$old=[];
   try{\Illuminate\Support\Facades\DB::transaction(function()use($request,$assessment,&$new,&$old){
    $paper=Assessment::whereKey($assessment->id)->lockForUpdate()->firstOrFail();abort_unless(in_array($paper->status,['uploaded','failed'],true),422,'Only an uploaded or failed paper can have its documents replaced.');
    $changes=['status'=>'uploaded','error_message'=>null,'processing_token'=>null,'processing_claim_token'=>null,'processing_started_at'=>null,'processing_completed_at'=>null];
+   if($request->filled('total_marks'))$changes['total_marks']=$request->input('total_marks');
    foreach(['question_paper'=>'question_paper_path','mark_scheme'=>'mark_scheme_path','written_answer'=>'written_answer_path']as$field=>$column){if($request->hasFile($field)){$path=ExamDocumentStorage::put($request->file($field),'private/papers/replacements');$new[]=$path;$old[]=$paper->$column;$changes[$column]=$path;}}
    if($request->boolean('remove_mark_scheme')&&!$request->hasFile('mark_scheme')){$old[]=$paper->mark_scheme_path;$changes['mark_scheme_path']=null;}
    if($request->hasFile('inserts')){foreach($paper->attachments()->where('type','insert')->get()as$attachment){$old[]=$attachment->path;$attachment->delete();}foreach($request->file('inserts')as$file){$path=ExamDocumentStorage::put($file,'private/papers/inserts');$new[]=$path;$paper->attachments()->create(['type'=>'insert','path'=>$path,'original_name'=>$file->getClientOriginalName()]);}}
    $paper->update($changes);
   });}catch(\Throwable $error){if($new)Storage::delete($new);throw$error;}
-  Storage::delete(array_filter($old));return back()->with('success','Documents replaced. Check this paper again; no additional paper check was reserved.');
+  Storage::delete(array_filter($old));return back()->with('success','Paper updated. Check it again; no additional paper check was reserved.');
  }
  private function enforceCheckLimit(User $user,int $incoming): void {
   if($user->isPlatformAdmin()) return;

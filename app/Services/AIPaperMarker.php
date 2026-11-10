@@ -32,7 +32,7 @@ class AIPaperMarker implements PaperMarker, QuestionScopedMarker
         $target=collect($all)->firstWhere('label',$label);
         if(!$target) throw new RuntimeException('The selected question could not be matched to the uploaded paper.');
         $scoped=['qp_text'=>$target['text'],'wa_text'=>$structure->sections($docs['wa_text'],[$label])[$label],
-            'ms_text'=>$structure->sections($docs['ms_text']??'',[$label])[$label],'insert_text'=>$docs['insert_text']??''];
+            'ms_text'=>$structure->schemeSections($docs['ms_text']??'',$all)[$label],'insert_text'=>$docs['insert_text']??''];
         $copy=clone $assessment; $copy->total_marks=$target['marks'];
         $payload=app(MarkingPayloadValidator::class)->validate($copy,$this->request($copy,$scoped,[$target]));
         $this->maxima([$target],$payload['questions']);

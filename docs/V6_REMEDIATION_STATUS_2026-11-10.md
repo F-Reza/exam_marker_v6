@@ -67,3 +67,13 @@ See [safe upgrade procedure](V6_SAFE_UPGRADE.md) and [payment setup](PAYMENTS.md
 ## Local release hygiene result
 
 Credential files, database exports, private/runtime storage and generated bootstrap caches were removed from the Git index with user-approved index access. Files remain on disk. The release builder verified a source-only ZIP with no credentials, databases, Git history, runtime storage or vendor dependencies. Historical commits are unchanged.
+
+## Follow-up: real PDF page numbers and writing rubric tables
+
+The uploaded English paper #3 exposed layout cases beyond the earlier small fixtures. A standalone page number `8` reset the QP parser to question 8, so the writing question's final `[25]` appeared to conflict with Q8's `[4]`. The MS parser also treated individual rubric criteria and score bands as competing question totals.
+
+Question-paper parsing now removes contextual page furniture while preserving genuine standalone question numbers. Mark schemes use a separate known-question/table parser that distinguishes whole-question totals from criteria, score bands and ranked answer lists. Genuine QP/MS maximum conflicts are still rejected. Answer text is no longer validated as maximum-mark declarations, and whole/targeted marking retain the correct MS sections.
+
+Read-only extraction of this QP and MS now agrees on **15 scored questions/sub-questions totaling 50 marks**. The form had been set to 30. Paper #3 was corrected to 50 with an audit record and returned to uploaded/retryable status; original documents and quota reservation were preserved. Paper options now permits total-only correction on uploaded/failed papers, while approved/checking papers remain protected. No AI request was made during this correction.
+
+Latest full regression: **104 tests, 935 assertions, exit 0** (8.851 seconds). Added synthetic layout/rubric and total-correction regressions; the real exam files remain private and are not copied into source fixtures. Evidence: `storage/framework/testing/question-layout-regression.xml`.
