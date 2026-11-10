@@ -3,9 +3,12 @@
 @section('content')
 <div class="page-head">
     <div>
-        <h1>Assigned Papers</h1>
-        <p>Review papers assigned to you and finalise student results.</p>
-    </div><a class="btn" href="{{route('assessments.create')}}">Check New Paper</a>
+        <h1>{{auth()->user()->owner_user_id ? 'Assigned Papers' : 'My Papers'}}</h1>
+        <p>Open a paper to view its files and checking results.</p>
+    </div>
+    @if(auth()->user()->canAccessModule('assessments'))
+    <a class="btn" href="{{route('assessments.create')}}">Check New Paper</a>
+    @endif
 </div>
 <div class="card">
     <div class="table-wrap">
@@ -26,7 +29,7 @@
                     <td>{{$a->created_at->format('d M Y')}}</td>
                     <td><a class="btn small" href="{{route('assessments.show',$a)}}">Open</a></td>
                 </tr>@empty<tr>
-                    <td colspan="5">No assigned papers.</td>
+                    <td colspan="5">No papers are available yet.</td>
                 </tr>@endforelse</tbody>
         </table>
     </div>

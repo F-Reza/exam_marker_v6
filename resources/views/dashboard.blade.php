@@ -3,7 +3,10 @@
     <div>
         <h1>Welcome, {{explode(' ',auth()->user()->name)[0]}}!</h1>
         <p>Here is what is happening with your account today.</p>
-    </div><a class="btn" href="{{route('assessments.create')}}">＋ Check New Paper</a>
+    </div>
+    @if(auth()->user()->canAccessModule('assessments'))
+    <a class="btn" href="{{route('assessments.create')}}">＋ Check New Paper</a>
+    @endif
 </div>
 <div class="stats-grid">
     <article><span class="stat-icon blue">▤</span>
@@ -15,11 +18,13 @@
     <article><span class="stat-icon amber">◷</span>
         <div><small>Processing</small><strong>{{$processing}}</strong></div>
     </article>
+    @if(auth()->user()->canAccessModule('students'))
     <article><span class="stat-icon purple">♙</span>
         <div><small>Total Students</small><strong>{{$students}}</strong></div>
     </article>
+    @endif
 </div>
-<div class="dashboard-grid">
+<div class="{{auth()->user()->canAccessModule('analytics') ? 'dashboard-grid' : ''}}">
     <section class="panel">
         <div class="panel-head">
             <div>
@@ -42,7 +47,15 @@
                         <td><b>{{$a->title}}</b><small>{{$a->subject}}</small></td>
                         <td>{{$a->student?->name??'Individual'}}</td>
                         <td><span class="status {{$a->status}}">{{str_replace('_',' ',$a->status)}}</span></td>
-                        <td>{{$a->percentage!==null?$a->percentage.'%':'—'}}</td>
+                        <td>
+                            @if(auth()->user()->hasFeature('percentage') && $a->percentage !== null)
+                            {{$a->percentage}}%
+                            @elseif($a->results()->exists())
+                            {{$a->results->sum(fn($result) => $result->finalMarks())}} / {{$a->total_marks}}
+                            @else
+                            —
+                            @endif
+                        </td>
                         <td><a class="table-link"
                                 href="{{route($a->results()->exists()?'results.show':'assessments.show',$a)}}">View
                                 →</a></td>
@@ -52,6 +65,7 @@
             </table>
         </div>
     </section>
+    @if(auth()->user()->canAccessModule('analytics'))
     <section class="panel performance">
         <div class="panel-head">
             <div>
@@ -63,5 +77,6 @@
         <div class="legend"><span><i class="good"></i>Strong 80–100%</span><span><i class="mid"></i>Developing
                 50–79%</span><span><i class="low"></i>Needs support</span></div>
     </section>
+    @endif
 </div>
 @endsection

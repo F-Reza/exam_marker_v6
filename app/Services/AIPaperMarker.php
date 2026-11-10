@@ -4,7 +4,6 @@ namespace App\Services;
 
 
 use App\Models\Assessment;
-use App\Models\AiSetting;
 use App\Contracts\DocumentReader;
 use Illuminate\Support\Facades\Http;
 
@@ -18,8 +17,8 @@ class AIPaperMarker implements PaperMarker
         private WritingRubricService $writingRubric
     )
     {
-
     }
+
 
 
 
@@ -67,7 +66,7 @@ class AIPaperMarker implements PaperMarker
     {
 
 
-        $rubric = json_encode(
+        $writingCriteria = json_encode(
             $this->writingRubric->criteria(),
             JSON_PRETTY_PRINT
         );
@@ -77,37 +76,43 @@ class AIPaperMarker implements PaperMarker
         return <<<PROMPT
 
 
-You are an expert Cambridge IGCSE and IB examiner.
+You are an expert Cambridge IGCSE / IB examiner.
+
 
 
 Subject:
+
 {$assessment->subject}
 
 
+
 Total Marks:
+
 {$assessment->total_marks}
 
 
 
-STRICT RULES:
+EXAMINER RULES:
 
-1. Use only the supplied mark scheme.
 
-2. Award exact marks.
+1. Use ONLY the supplied mark scheme.
 
-3. Mark every question separately.
+2. Do NOT divide marks equally.
+
+3. Use exact marks from the mark scheme.
 
 4. Mark every sub-question separately.
 
-5. Give examiner feedback.
+5. Provide examiner-quality feedback.
 
-6. For essay/writing questions use the writing rubric.
+6. For writing questions use the supplied rubric.
 
-7. Return ONLY JSON.
+7. Return ONLY valid JSON.
 
 
 
 QUESTION PAPER:
+
 
 {$docs['qp_text']}
 
@@ -115,46 +120,164 @@ QUESTION PAPER:
 
 MARK SCHEME:
 
+
 {$docs['ms_text']}
+
 
 
 
 WRITING RUBRIC:
 
-$rubric
+
+{$writingCriteria}
+
 
 
 
 STUDENT ANSWER:
 
+
 {$docs['wa_text']}
 
 
 
-JSON FORMAT:
+
+RETURN JSON FORMAT:
+
+
 
 {
 "questions":[
+
 {
+
 "question_number":"1",
+
 "question_part":"a",
+
 "parent_question_number":"1",
-"max_marks":5,
-"ai_marks":4,
+
+"type":"normal",
+
+"max_marks":2,
+
+"ai_marks":1,
+
 "confidence":"high",
-"feedback":"Good explanation but missing final justification.",
+
+"feedback":"Student identified the correct concept but explanation is incomplete.",
+
 "criteria":[]
+
+},
+
+
+{
+
+"question_number":"11",
+
+"question_part":null,
+
+"parent_question_number":"11",
+
+"type":"writing",
+
+"max_marks":25,
+
+"ai_marks":20,
+
+
+"writing_rubric":{
+
+
+"content":{
+
+"awarded":4,
+
+"max_marks":5,
+
+"feedback":"Ideas are relevant but need further development."
+
+},
+
+
+"organisation":{
+
+"awarded":4,
+
+"max_marks":5,
+
+"feedback":"Clear paragraph structure and logical sequence."
+
+},
+
+
+"vocabulary":{
+
+"awarded":4,
+
+"max_marks":5,
+
+"feedback":"Good vocabulary range with minor limitations."
+
+},
+
+
+"grammar":{
+
+"awarded":3,
+
+"max_marks":5,
+
+"feedback":"Some grammatical errors affect accuracy."
+
+},
+
+
+"spelling":{
+
+"awarded":5,
+
+"max_marks":5,
+
+"feedback":"Spelling and punctuation are accurate."
+
 }
+
+
+}
+
+
+}
+
 ],
+
+
 
 "percentage":80,
 
+
 "grade":"7",
 
+
+
 "summary":{
-"strengths":[""],
-"weaknesses":[""]
+
+"strengths":[
+
+""
+
+],
+
+
+"weaknesses":[
+
+""
+
+]
+
 }
+
 
 }
 
@@ -179,106 +302,76 @@ PROMPT;
     {
 
 
-        $setting = AiSetting::first();
+        $provider = config(
+            'ai.provider'
+        );
 
 
 
-        if(!$setting)
+        $config = config(
+            "ai.models.$provider"
+        );
+
+
+
+
+        switch($provider)
         {
-            throw new \Exception(
-                "AI Provider not configured."
-            );
+
+
+            case 'openai':
+
+                return $this->openAI(
+                    $config,
+                    $prompt
+                );
+
+
+
+            case 'gemini':
+
+                return $this->gemini(
+                    $config,
+                    $prompt
+                );
+
+
+
+            case 'claude':
+
+                return $this->claude(
+                    $config,
+                    $prompt
+                );
+
+
+
+            case 'openrouter':
+
+                return $this->openAI(
+                    $config,
+                    $prompt
+                );
+
+
+
+            case 'ollama':
+
+                return $this->ollama(
+                    $config,
+                    $prompt
+                );
+
+
+
+            default:
+
+                throw new \Exception(
+                    "AI provider not supported"
+                );
+
+
         }
-
-
-
-        if($setting->status !== 'active')
-        {
-            throw new \Exception(
-                "AI Provider is disabled."
-            );
-        }
-
-
-
-
-        $config=[
-
-            'key'=>$setting->api_key,
-
-            'model'=>$setting->model,
-
-            'url'=>match($setting->provider)
-            {
-
-                'openai'
-                =>
-                'https://api.openai.com/v1/chat/completions',
-
-
-                default
-                =>
-                config(
-                    'ai.models.'.$setting->provider.'.url'
-                )
-
-            }
-
-        ];
-
-
-
-
-
-        return match($setting->provider)
-        {
-
-
-            'openai',
-            'openrouter'
-            =>
-            $this->openAI(
-                $config,
-                $prompt
-            ),
-
-
-
-            'gemini'
-            =>
-            $this->gemini(
-                $config,
-                $prompt
-            ),
-
-
-
-            'claude'
-            =>
-            $this->claude(
-                $config,
-                $prompt
-            ),
-
-
-
-            'ollama'
-            =>
-            $this->ollama(
-                $config,
-                $prompt
-            ),
-
-
-
-            default
-            =>
-            throw new \Exception(
-                "Unsupported AI provider."
-            )
-
-
-        };
 
 
     }
@@ -298,37 +391,16 @@ PROMPT;
     {
 
 
-        $response = Http::withToken(
+        $r = Http::withToken(
             $config['key']
         )
-        ->timeout(120)
         ->post(
-
             $config['url'],
-
             [
 
                 'model'=>$config['model'],
 
-
-                'temperature'=>0.2,
-
-
-                'response_format'=>[
-                    'type'=>'json_object'
-                ],
-
-
-
                 'messages'=>[
-
-
-                    [
-                        'role'=>'system',
-                        'content'=>
-                        'You are an expert examiner. Return only JSON.'
-                    ],
-
 
                     [
                         'role'=>'user',
@@ -338,55 +410,13 @@ PROMPT;
                 ]
 
             ]
-
         );
 
 
 
-
-
-        if(!$response->successful())
-        {
-
-            throw new \Exception(
-
-                "OpenAI Error: ".
-                $response->body()
-
-            );
-
-        }
-
-
-
-
-        $data=$response->json();
-
-
-
-        $content =
-            $data['choices'][0]['message']['content']
-            ??
-            null;
-
-
-
-
-        if(!$content)
-        {
-
-            throw new \Exception(
-
-                "Invalid OpenAI response: ".
-                json_encode($data)
-
-            );
-
-        }
-
-
-
-        return $content;
+        return $r->json(
+            'choices.0.message.content'
+        );
 
 
     }
@@ -407,21 +437,16 @@ PROMPT;
 
 
         $url =
-        $config['url']
-        .'/'.
-        $config['model']
-        .
-        ':generateContent?key='
-        .
-        $config['key'];
+            $config['url']
+            .'/'
+            .$config['model']
+            .':generateContent?key='
+            .$config['key'];
 
 
 
-        $response =
-        Http::post(
-
+        $r = Http::post(
             $url,
-
             [
 
                 'contents'=>[
@@ -441,28 +466,13 @@ PROMPT;
                 ]
 
             ]
-
         );
 
 
 
-        $text =
-        $response->json(
+        return $r->json(
             'candidates.0.content.parts.0.text'
         );
-
-
-
-        if(!$text)
-        {
-            throw new \Exception(
-                "Gemini invalid response ".$response->body()
-            );
-        }
-
-
-
-        return $text;
 
 
     }
@@ -482,18 +492,16 @@ PROMPT;
     {
 
 
-        $response =
-        Http::withHeaders([
+        $r = Http::withHeaders([
 
             'x-api-key'=>$config['key'],
 
             'anthropic-version'=>'2023-06-01'
 
+
         ])
         ->post(
-
             $config['url'],
-
             [
 
                 'model'=>$config['model'],
@@ -504,35 +512,24 @@ PROMPT;
                 'messages'=>[
 
                     [
+
                         'role'=>'user',
+
                         'content'=>$prompt
+
                     ]
 
                 ]
 
-            ]
 
+            ]
         );
 
 
 
-        $text =
-        $response->json(
+        return $r->json(
             'content.0.text'
         );
-
-
-
-        if(!$text)
-        {
-            throw new \Exception(
-                "Claude invalid response ".$response->body()
-            );
-        }
-
-
-
-        return $text;
 
 
     }
@@ -552,11 +549,8 @@ PROMPT;
     {
 
 
-        $response =
-        Http::post(
-
+        $r = Http::post(
             $config['url'],
-
             [
 
                 'model'=>$config['model'],
@@ -565,8 +559,11 @@ PROMPT;
                 'messages'=>[
 
                     [
+
                         'role'=>'user',
+
                         'content'=>$prompt
+
                     ]
 
                 ],
@@ -576,28 +573,13 @@ PROMPT;
 
 
             ]
-
         );
 
 
 
-        $text =
-        $response->json(
+        return $r->json(
             'message.content'
         );
-
-
-
-        if(!$text)
-        {
-            throw new \Exception(
-                "Ollama invalid response ".$response->body()
-            );
-        }
-
-
-
-        return $text;
 
 
     }
@@ -616,31 +598,25 @@ PROMPT;
     {
 
 
-        $json =
-        str_replace(
-
+        $json = str_replace(
             [
                 '```json',
                 '```'
             ],
-
             '',
-
             $json
-
         );
 
 
 
-        $data =
-        json_decode(
+        $json = trim($json);
 
-            trim($json),
 
+
+        $data = json_decode(
+            $json,
             true
-
         );
-
 
 
 
@@ -648,21 +624,8 @@ PROMPT;
         {
 
             throw new \Exception(
-
-                "AI JSON Error: ".
-                json_last_error_msg()
-
-            );
-
-        }
-
-
-
-        if(!isset($data['questions']))
-        {
-
-            throw new \Exception(
-                "AI response missing questions."
+                'Invalid AI JSON response: '
+                .json_last_error_msg()
             );
 
         }
@@ -673,6 +636,7 @@ PROMPT;
 
 
     }
+
 
 
 }

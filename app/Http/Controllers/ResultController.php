@@ -49,6 +49,13 @@ class ResultController extends Controller
     }
 
 
+    public function showResult(QuestionResult $result)
+    {
+        $this->access($result->assessment);
+
+        return redirect()->route('results.show', $result->assessment);
+    }
+
     public function update(
         Request $request,
         QuestionResult $result,
@@ -58,19 +65,27 @@ class ResultController extends Controller
         $this->access($result->assessment);
 
         abort_unless(
-            $request->user()->hasFeature('manual_mark_editing'),
+            $request->user()->canAccessModule('result-edit'),
             403
         );
 
 
-        $data=$request->validate([
-            'teacher_marks'=>'required|numeric|min:0',
-            'teacher_comment'=>'nullable|string|max:2000'
-        ]);
+        abort_if(in_array($result->assessment->status, ['finalised', 'reported'], true), 422, 'Reopen the result for review before editing.');
+
+        $canMark = $request->user()->hasFeature('manual_mark_editing');
+        $canFeedback = $request->user()->hasFeature('feedback_editing');
+        abort_if($request->has('teacher_marks') && !$canMark, 403);
+        abort_if($request->has('teacher_comment') && !$canFeedback, 403);
+
+        $rules = [];
+        if ($canMark) $rules['teacher_marks'] = 'sometimes|required|numeric|min:0';
+        if ($canFeedback) $rules['teacher_comment'] = 'sometimes|nullable|string|max:2000';
+        $data = $request->validate($rules);
+        abort_if($data === [], 422, 'Provide a mark or feedback to update.');
 
 
         abort_if(
-            (float)$data['teacher_marks'] >
+            isset($data['teacher_marks']) && (float)$data['teacher_marks'] >
             (float)$result->max_marks,
             422,
             'Final marks cannot exceed maximum marks.'
@@ -97,7 +112,7 @@ class ResultController extends Controller
             'result.teacher_edited',
             [
                 'before'=>$before,
-                'after'=>$data['teacher_marks']
+                'after'=>$data['teacher_marks'] ?? $before
             ]
         );
 
@@ -122,11 +137,13 @@ class ResultController extends Controller
 
 
         abort_unless(
-            request()->user()->hasFeature('question_recheck'),
+            request()->user()->canAccessModule('result-recheck'),
             403
         );
 
 
+
+        abort_if(in_array($result->assessment->status, ['finalised', 'reported'], true), 422, 'Reopen the result for review before rechecking.');
 
         $owner=request()
             ->user()
@@ -320,6 +337,9 @@ class ResultController extends Controller
 
         $this->access($assessment);
 
+        abort_unless(request()->user()->canAccessModule('result-finalise'), 403);
+        abort_unless($assessment->results()->exists(), 422, 'Check this paper before finalising its result.');
+
 
         $this->recalculate(
             $assessment->load('results')
@@ -371,6 +391,23 @@ class ResultController extends Controller
 
 
 
+
+    public function unfinalise(Assessment $assessment, AuditService $audit)
+    {
+        $this->access($assessment);
+        abort_unless(request()->user()->canAccessModule('result-finalise'), 403);
+        abort_unless(in_array($assessment->status, ['finalised', 'reported'], true), 422);
+
+        $assessment->update([
+            'status' => 'review_required',
+            'finalised_at' => null,
+            'public_report_token' => null,
+            'public_report_expires_at' => null,
+        ]);
+        $audit->log($assessment, 'assessment.reopened');
+
+        return back()->with('success', 'Result reopened for review. Finalise it again when the changes are approved.');
+    }
 
     public function report(Assessment $assessment)
     {

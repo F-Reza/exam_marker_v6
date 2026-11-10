@@ -8,7 +8,7 @@
         <h1>Check a new paper</h1>
         <p>Complete the guided flow: details, QP + MS, then WA and confirmation.</p>
     </div>
-    <span class="plan-chip">{{auth()->user()->plan?->name}}</span>
+    <span class="plan-chip">{{auth()->user()->effectivePlan()?->name}}</span>
 </div>
 
 <!-- FIXED: Added action="{{ route('assessments.store') }}" -->
@@ -50,7 +50,7 @@
                     <input class="input" type="date" name="assessment_date" value="{{old('assessment_date')}}">
                 </div>
 
-                @if(auth()->user()->user_type !== 'student')
+                @if(auth()->user()->canAccessModule('students'))
                     <div class="form-group span-2">
                         <label>Student</label>
                         <select class="input" name="student_id">
@@ -64,7 +64,7 @@
                     </div>
                 @endif
 
-                @if(auth()->user()->hasFeature('teacher_assignment') && auth()->user()->user_type !== 'student' && isset($teachers) && $teachers->count() > 0)
+                @if(auth()->user()->canAccessModule('teacher-assignment') && isset($teachers) && $teachers->count() > 0)
                     <div class="form-group span-2">
                         <label>Assign teacher</label>
                         <select class="input" name="assigned_teacher_id">
@@ -84,31 +84,40 @@
             <h2>Upload Question Paper and Mark Scheme</h2>
             <p class="muted">QP and MS are combined on this page. MS is optional. For English, Humanities and source-based papers, upload one or more Inserts/Source Booklets separately.</p>
             <div class="file-grid">
-                <label class="dropzone">
-                    <span class="file-icon qp">QP</span>
-                    <b>Question Paper</b>
-                    <small>Compulsory · PDF, DOC or DOCX · Max 50 MB</small>
-                    <input type="file" name="question_paper" accept=".pdf,.doc,.docx" required>
-                    <em>Browse QP</em>
-                    <output class="file-name">No file selected</output>
-                </label>
-                <label class="dropzone">
-                    <span class="file-icon ms">MS</span>
-                    <b>Mark Scheme (optional)</b>
-                    <small>Optional · PDF, DOC or DOCX · Max 50 MB</small>
-                    <input type="file" name="mark_scheme" accept=".pdf,.doc,.docx">
-                    <em>Browse MS</em>
-                    <output class="file-name">No file selected</output>
-                </label>
+                <div class="file-upload">
+                    <label class="dropzone">
+                        <span class="file-icon qp">QP</span>
+                        <b>Question Paper</b>
+                        <small>Compulsory · PDF, DOC or DOCX · Max 50 MB</small>
+                        <input type="file" name="question_paper" accept=".pdf,.doc,.docx" required>
+                        <em>Browse QP</em>
+                        <output class="file-name">No file selected</output>
+                    </label>
+                    @include('assessments.partials.file-remove-button', ['label' => 'Remove selected question paper'])
+                </div>
+                <div class="file-upload">
+                    <label class="dropzone">
+                        <span class="file-icon ms">MS</span>
+                        <b>Mark Scheme (optional)</b>
+                        <small>Optional · PDF, DOC or DOCX · Max 50 MB</small>
+                        <input type="file" name="mark_scheme" accept=".pdf,.doc,.docx">
+                        <em>Browse MS</em>
+                        <output class="file-name">No file selected</output>
+                    </label>
+                    @include('assessments.partials.file-remove-button', ['label' => 'Remove selected mark scheme'])
+                </div>
             </div>
-            <label class="dropzone wide insert-zone">
-                <span class="file-icon insert">IN</span>
-                <b>Insert / Source Booklet (optional)</b>
-                <small>Upload up to 5 PDF, DOC or DOCX files — useful for English Checkpoint, comprehension, case studies and source papers.</small>
-                <input type="file" name="inserts[]" accept=".pdf,.doc,.docx" multiple>
-                <em>Browse Insert(s)</em>
-                <output class="file-name">No insert selected</output>
-            </label>
+            <div class="file-upload wide insert-zone">
+                <label class="dropzone">
+                    <span class="file-icon insert">IN</span>
+                    <b>Insert / Source Booklet (optional)</b>
+                    <small>Upload up to 5 PDF, DOC or DOCX files — useful for English Checkpoint, comprehension, case studies and source papers.</small>
+                    <input type="file" name="inserts[]" accept=".pdf,.doc,.docx" multiple>
+                    <em>Browse Insert(s)</em>
+                    <output class="file-name">No insert selected</output>
+                </label>
+                @include('assessments.partials.file-remove-button', ['label' => 'Remove selected inserts'])
+            </div>
             <div class="info-note">
                 <span class="info-icon">ⓘ</span>
                 <span>No MS? The system will generate a suggested marking structure and flag the result for manual verification.</span>
@@ -117,14 +126,17 @@
 
         <section class="wizard-pane" data-step="3">
             <h2>Upload Written Answer Paper</h2>
-            <label class="dropzone wide">
-                <span class="file-icon wa">WA</span>
-                <b>Written Answer Paper (WA)</b>
-                <small>Compulsory · PDF, DOC or DOCX · Max 50 MB</small>
-                <input type="file" name="written_answer" accept=".pdf,.doc,.docx" required>
-                <em>Browse WA</em>
-                <output class="file-name">No file selected</output>
-            </label>
+            <div class="file-upload wide">
+                <label class="dropzone">
+                    <span class="file-icon wa">WA</span>
+                    <b>Written Answer Paper (WA)</b>
+                    <small>Compulsory · PDF, DOC or DOCX · Max 50 MB</small>
+                    <input type="file" name="written_answer" accept=".pdf,.doc,.docx" required>
+                    <em>Browse WA</em>
+                    <output class="file-name">No file selected</output>
+                </label>
+                @include('assessments.partials.file-remove-button', ['label' => 'Remove selected written answer'])
+            </div>
             <div class="confirm-grid">
                 <article>
                     <b>🔒 Secure processing</b>
@@ -160,6 +172,8 @@
         </div>
     </aside>
 </form>
+
+@include('assessments.partials.file-removal-assets')
 
 @push('scripts')
 <script>

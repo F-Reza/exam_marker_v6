@@ -30,6 +30,11 @@
 <body>
 
     @auth
+    @php
+        $currentUser = auth()->user();
+        $currentPlan = $currentUser->effectivePlan();
+        $supportRoute = $currentUser->isPlatformAdmin() ? 'admin.support.index' : 'help.index';
+    @endphp
     <div class="app-shell">
         <aside class="sidebar" id="sidebar">
             <a href="{{route('dashboard')}}" class="brand">
@@ -46,81 +51,88 @@
             </a>
 
             <nav>
-                @if(Route::has('dashboard'))
-                <a href="{{route('dashboard')}}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                @if(Route::has('dashboard') && $currentUser->canAccessModule('dashboard'))
+                <a href="{{route('dashboard')}}" class="{{ request()->routeIs('dashboard', 'portal.teacher', 'portal.student') ? 'active' : '' }}">
                     ☰ Dashboard
                 </a>
                 @endif
 
-                @if(Route::has('assessments.create'))
+                @if(Route::has('assessments.create') && $currentUser->canAccessModule('assessments'))
                 <a href="{{route('assessments.create')}}"
                     class="{{ request()->routeIs('assessments.create') ? 'active' : '' }}">
                     🚀 Check New Papers
                 </a>
                 @endif
 
-                @if(Route::has('assessments.bulk.create'))
+                @if(Route::has('assessments.bulk.create') && $currentUser->canAccessModule('bulk'))
                 <a href="{{route('assessments.bulk.create')}}"
                     class="{{ request()->routeIs('assessments.bulk.create') ? 'active' : '' }}">
                     🔼 Bulk Check Papers
                 </a>
                 @endif
 
-                @if(Route::has('assessments.index'))
+                @if(Route::has('assessments.index') && $currentUser->canAccessModule('assessments'))
                 <a href="{{route('assessments.index')}}"
                     class="{{ request()->routeIs('assessments.index') || request()->routeIs('assessments.show') || request()->routeIs('assessments.processing') ? 'active' : '' }}">
                     📚 All Papers
                 </a>
                 @endif
 
-                @if(Route::has('students.index'))
+                @if(Route::has('students.index') && $currentUser->canAccessModule('students'))
                 <a href="{{route('students.index')}}"
-                    class="{{ request()->routeIs('students.index') || request()->routeIs('students.create') ? 'active' : '' }}">
+                    class="{{ request()->routeIs('students.*') ? 'active' : '' }}">
                     👨‍🎓 Students
                 </a>
                 @endif
 
-                @if(Route::has('communications.index'))
+                @if(Route::has('communications.index') && $currentUser->canAccessModule('communications'))
                 <a href="{{route('communications.index')}}"
                     class="{{ request()->routeIs('communications.index') ? 'active' : '' }}">
                     💬 Parent Messages
                 </a>
                 @endif
 
-                @if(Route::has('team.index'))
+                @if(Route::has('team.index') && $currentUser->canAccessModule('team'))
                 <a href="{{route('team.index')}}" class="{{ request()->routeIs('team.index') ? 'active' : '' }}">
                     👨‍🏫 Teachers & Team
                 </a>
                 @endif
 
-                @if(Route::has('reports.index'))
+                @if(Route::has('reports.index') && $currentUser->canAccessModule('reports'))
                 <a href="{{route('reports.index')}}" class="{{ request()->routeIs('reports.index') ? 'active' : '' }}">
                     📊 Reports
                 </a>
                 @endif
 
-                @if(Route::has('analytics'))
+                @if(Route::has('analytics') && $currentUser->canAccessModule('analytics'))
                 <a href="{{route('analytics')}}" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
                     📈 Analytics
                 </a>
                 @endif
 
-                @if(Route::has('notifications.index'))
+                @if(Route::has('notifications.index') && $currentUser->canAccessModule('notifications'))
                 <a href="{{route('notifications.index')}}"
                     class="{{ request()->routeIs('notifications.index') ? 'active' : '' }}">
                     🔔 Notifications
                 </a>
                 @endif
 
-                @if(Route::has('admin.support.index'))
-                <a href="{{route('admin.support.index')}}"
-                    class="{{ request()->routeIs('admin.support.index') ? 'active' : '' }}">
+                @if(Route::has($supportRoute) && $currentUser->canAccessModule('support'))
+                <a href="{{route($supportRoute)}}"
+                    class="{{ request()->routeIs($supportRoute) ? 'active' : '' }}">
                     📩 Support Center
                 </a>
                 @endif
 
+                @if(Route::has('settings.index') && $currentUser->canAccessModule('settings'))
+                <a href="{{route('settings.index')}}"
+                    class="{{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                    ⚙️ Profile Settings
+                </a>
+                @endif
+
                 {{-- PLATFORM ADMIN --}}
-                @if(auth()->user()->isPlatformAdmin())
+                @if($currentUser->canAccessModule('admin'))
                 @if(Route::has('admin.plans.index'))
                 <a href="{{route('admin.plans.index')}}"
                     class="{{ request()->routeIs('admin.plans.index') ? 'active' : '' }}">
@@ -149,13 +161,6 @@
                 </a>
                 @endif
 
-                @if(Route::has('settings.index'))
-                <a href="{{route('settings.index')}}"
-                    class="{{ request()->routeIs('settings.index') ? 'active' : '' }}">
-                    ⚙️ Profile Settings
-                </a>
-                @endif
-
                 @if(Route::has('admin.config.index'))
                 <a href="{{route('admin.config.index')}}"
                     class="{{ request()->routeIs('admin.config.index') ? 'active' : '' }}">
@@ -164,7 +169,6 @@
                 @endif
 
                 {{-- AI PROCESSING --}}
-                @if(auth()->user()->isPlatformAdmin())
                 @if(Route::has('admin.ai-processing.index'))
                 <a href="{{route('admin.ai-processing.index')}}"
                     class="{{ request()->routeIs('admin.ai-processing.index') ? 'active' : '' }}">
@@ -178,7 +182,6 @@
                     🤖 AI Provider Settings
                 </a>
                 @endif
-                @endif
 
                 @if(Route::has('admin.audit.index'))
                 <a href="{{route('admin.audit.index')}}"
@@ -188,27 +191,25 @@
                 @endif
 
                 @else
-                @if(Route::has('billing.index'))
-                <a href="{{route('billing.index')}}" class="{{ request()->routeIs('billing.index') ? 'active' : '' }}">
+                @if(Route::has('billing.index') && $currentUser->canAccessModule('billing'))
+                <a href="{{route('billing.index')}}" class="{{ request()->routeIs('billing.*', 'payments.checkout', 'payments.pay') ? 'active' : '' }}">
                     ◇ Plan & Billing
-                </a>
-                @endif
-
-                @if(Route::has('help.index'))
-                <a href="{{route('help.index')}}" class="{{ request()->routeIs('help.index') ? 'active' : '' }}">
-                    ❓ Help & Support
                 </a>
                 @endif
                 @endif
             </nav>
 
             <div class="side-plan">
-                @if(auth()->user()->isPlatformAdmin())
+                @if($currentUser->isPlatformAdmin())
                 <span class="plan-chip">Platform Admin</span>
                 <p>Unlimited System Access</p>
                 @else
-                <span class="plan-chip">{{auth()->user()->plan?->name}}</span>
-                <p>{{auth()->user()->limit('paper_check_limit',1)}} checks per cycle</p>
+                <span class="plan-chip">{{$currentPlan?->name ?? 'No plan assigned'}}</span>
+                @if($currentPlan?->slug === 'free')
+                <p>1 lifetime paper check</p>
+                @else
+                <p>{{$currentUser->limit('paper_check_limit',1)}} checks per cycle</p>
+                @endif
                 @endif
             </div>
         </aside>
@@ -223,7 +224,7 @@
                     @yield('page-title', 'Dashboard')
                 </div>
 
-                @if(Route::has('notifications.index'))
+                @if(Route::has('notifications.index') && $currentUser->canAccessModule('notifications'))
                 <a class="notification-link" href="{{route('notifications.index')}}">
                     🔔
                     <span>{{auth()->user()->unreadNotifications()->count()}}</span>

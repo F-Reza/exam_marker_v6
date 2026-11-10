@@ -15,12 +15,15 @@ $obt = $assessment->results->sum(
 
 $max = $assessment->results->sum('max_marks');
 
-$canEdit = auth()->user()->hasFeature('manual_mark_editing');
-$hasReportDownload = auth()->user()->hasFeature('result_report_download');
-$hasCorrectedPaper = auth()->user()->hasFeature('corrected_paper_download');
-$hasParentEmail = auth()->user()->hasFeature('parent_email');
-$hasParentSms = auth()->user()->hasFeature('parent_sms');
-$hasQuestionRecheck = auth()->user()->hasFeature('question_recheck');
+$resultUser = auth()->user();
+$isFinalised = in_array($assessment->status, ['finalised', 'reported'], true);
+$canEdit = $resultUser->canAccessModule('result-edit') && !$isFinalised;
+$canMarkEdit = $resultUser->hasFeature('manual_mark_editing');
+$canFeedbackEdit = $resultUser->hasFeature('feedback_editing');
+$canFinalise = $resultUser->canAccessModule('result-finalise');
+$hasReportDownload = $resultUser->canAccessModule('reports');
+$hasCorrectedPaper = $resultUser->canAccessModule('corrected-paper');
+$hasQuestionRecheck = $resultUser->canAccessModule('result-recheck') && !$isFinalised;
 
 
 
@@ -131,15 +134,15 @@ Corrected Paper
 
 
 
-@if($canEdit)
+@if($canFinalise)
 
 <form method="post"
-action="{{ route('results.finalise',$assessment) }}">
+action="{{ route($isFinalised ? 'results.unfinalise' : 'results.finalise',$assessment) }}">
 
 @csrf
 
 <button class="btn">
-Finalise Result
+{{ $isFinalised ? 'Reopen for Review' : 'Finalise Result' }}
 </button>
 
 </form>
@@ -170,20 +173,24 @@ Finalise Result
 </article>
 
 
+@if($resultUser->hasFeature('percentage'))
 <article>
 <small>Percentage</small>
 <strong>
 {{ $assessment->percentage ?? round($obt/max(1,$max)*100,1) }}%
 </strong>
 </article>
+@endif
 
 
+@if($resultUser->hasFeature('grade'))
 <article>
 <small>Grade</small>
 <strong>
 {{ $assessment->grade_awarded ?? '—' }}
 </strong>
 </article>
+@endif
 
 
 </div>
@@ -359,112 +366,31 @@ Teacher:
 
 
 @if($canEdit)
-
-
-<form method="post"
-action="{{ route('results.update',$r) }}"
-class="mark-form">
-
-
-@csrf
-
-@method('PATCH')
-
-
-
-<label>
-
-Final mark
-
-<input
-
-class="input"
-
-type="number"
-
-step="0.5"
-
-min="0"
-
-max="{{ $r->max_marks }}"
-
-name="teacher_marks"
-
-value="{{ $r->teacher_marks ?? $r->ai_marks }}"
-
-/>
-
-</label>
-
-
-
-
-<label>
-
-Teacher comment
-
-
-<input
-
-class="input"
-
-name="teacher_comment"
-
-value="{{ $r->teacher_comment }}"
-
-/>
-
-
-</label>
-
-
-
-
-<button class="btn small">
-
-Save
-
-</button>
-
-
+<form method="post" action="{{ route('results.update',$r) }}" class="mark-form">
+    @csrf
+    @method('PATCH')
+    @if($canMarkEdit)
+    <label>
+        Final mark
+        <input class="input" type="number" step="0.5" min="0" max="{{ $r->max_marks }}" name="teacher_marks" value="{{ $r->teacher_marks ?? $r->ai_marks }}">
+    </label>
+    @endif
+    @if($canFeedbackEdit)
+    <label>
+        Teacher comment
+        <input class="input" name="teacher_comment" value="{{ $r->teacher_comment }}">
+    </label>
+    @endif
+    <button class="btn small">Save</button>
 </form>
-
-
-
-
+@endif
 
 @if($hasQuestionRecheck)
-
-
-<form method="post"
-action="{{ route('results.recheck-question',$r) }}">
-
-@csrf
-
-
-<button class="btn small ghost">
-
-Recheck
-
-{{ 
-$r->question_part
-? $r->question_number.'('.$r->question_part.')'
-: $r->question_number
-}}
-
-
-</button>
-
-
+<form method="post" action="{{ route('results.recheck-question',$r) }}">
+    @csrf
+    <button class="btn small ghost">Recheck {{ $r->question_part ? $r->question_number.'('.$r->question_part.')' : $r->question_number }}</button>
 </form>
-
-
 @endif
-
-
-@endif
-
-
 
 </article>
 

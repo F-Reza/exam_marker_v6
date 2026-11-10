@@ -1,0 +1,10 @@
+<?php $__env->startSection('title','Reports'); ?> <?php $__env->startSection('page-title','Reports'); ?>
+<?php $__env->startSection('content'); ?>
+<div class="welcome"><div><span class="eyebrow">RESULT LIBRARY</span><h1>Reports</h1><p>View, print and share finalised assessment results.</p></div><a class="btn" href="<?php echo e(route('assessments.create')); ?>">＋ Check New Paper</a></div>
+<div class="panel table-panel"><div class="panel-head"><h2>Available reports</h2><span class="badge"><?php echo e($reports->total()); ?> reports</span></div>
+<div class="table-wrap"><table><thead><tr><th>Assessment</th><th>Student</th><th>Subject</th><th>Score</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+<?php $__empty_1 = true; $__currentLoopData = $reports; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $a): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><tr><td><b><?php echo e($a->title); ?></b><small><?php echo e($a->created_at->format('d M Y')); ?></small></td><td><?php echo e($a->student?->name ?? 'Individual paper'); ?></td><td><?php echo e($a->subject); ?></td><td><?php echo e($a->percentage!==null?$a->percentage.'%':'—'); ?></td><td><span class="badge green"><?php echo e(ucwords(str_replace('_',' ',$a->status))); ?></span></td><td class="actions"><a href="<?php echo e(route('results.show',$a)); ?>">View</a><?php if(auth()->user()->hasFeature('result_report_download')): ?><a href="<?php echo e(route('results.report',$a)); ?>">Report</a><?php endif; ?></td></tr><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><tr><td colspan="6" class="empty">No finalised reports yet.</td></tr><?php endif; ?>
+</tbody></table></div><div class="pagination"><?php echo e($reports->links()); ?></div></div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH /home/nextdigit/educatalyst.nextdigit.dev/resources/views/reports/index.blade.php ENDPATH**/ ?>

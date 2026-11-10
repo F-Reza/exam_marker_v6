@@ -8,6 +8,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['payments/callback/*']);
         $middleware->alias([
             'feature' => \App\Http\Middleware\RequirePlanFeature::class,
+            'module' => \App\Http\Middleware\RequireModule::class,
             'admin' => \App\Http\Middleware\RequireAdmin::class,
             'role' => \App\Http\Middleware\RequireRole::class,
         ]);

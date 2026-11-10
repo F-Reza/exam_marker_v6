@@ -46,7 +46,7 @@ Route::get('/cc', function () {
     Artisan::call('config:clear');
     Artisan::call('optimize:clear');
     return redirect()->back()->with('success', 'Cache cleared successfully');
-})->name('clear-all');
+})->middleware(['auth', 'admin'])->name('clear-all');
 
 
 /*
@@ -115,7 +115,7 @@ Route::middleware(['auth', 'verified'])->group(function() {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/student-portal', [PortalController::class, 'student'])->middleware('role:student')->name('portal.student');
     Route::get('/teacher-workspace', [PortalController::class, 'teacher'])->middleware('role:teacher')->name('portal.teacher');
-    Route::get('/analytics', [AnalyticsController::class, 'index'])->middleware('feature:graphs')->name('analytics');
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->middleware('module:analytics')->name('analytics');
 
     /*
     |--------------------------------------------------------------------------
@@ -123,14 +123,14 @@ Route::middleware(['auth', 'verified'])->group(function() {
     |--------------------------------------------------------------------------
     */
 
-    Route::resource('assessments', AssessmentController::class)->except(['edit', 'update']);
+    Route::resource('assessments', AssessmentController::class)->except(['edit', 'update'])->middleware('module:assessments');
     
     Route::get('/bulk-check', [BulkAssessmentController::class, 'create'])
-        ->middleware('feature:bulk_answer_upload')
+        ->middleware('module:bulk')
         ->name('assessments.bulk.create');
     
     Route::post('/bulk-check', [BulkAssessmentController::class, 'store'])
-        ->middleware('feature:bulk_answer_upload')
+        ->middleware('module:bulk')
         ->name('assessments.bulk.store');
 
     Route::post('/assessments/{assessment}/start', [AssessmentController::class, 'start'])->name('assessments.start');
@@ -147,11 +147,11 @@ Route::middleware(['auth', 'verified'])->group(function() {
     Route::get('/results/{result}', [ResultController::class, 'showResult'])->name('results.view');
     
     Route::patch('/results/{result}', [ResultController::class, 'update'])
-        ->middleware('feature:manual_mark_editing')
+        ->middleware('module:result-edit')
         ->name('results.update');
 
     Route::post('/results/{result}/recheck', [ResultController::class, 'recheckQuestion'])
-        ->middleware('feature:question_recheck')
+        ->middleware('module:result-recheck')
         ->name('results.recheck-question');
 
     Route::get('/assessments/{assessment}/finalise', function($assessment) {
@@ -160,22 +160,23 @@ Route::middleware(['auth', 'verified'])->group(function() {
     })->name('results.finalise.redirect');
 
     Route::post('/assessments/{assessment}/finalise', [ResultController::class, 'finalise'])
-        ->middleware('feature:manual_mark_editing')
+        ->middleware('module:result-finalise')
         ->name('results.finalise');
 
     Route::post('/assessments/{assessment}/unfinalise', [ResultController::class, 'unfinalise'])
+        ->middleware('module:result-finalise')
         ->name('results.unfinalise');
 
     Route::get('/assessments/{assessment}/report', [ResultController::class, 'report'])
-        ->middleware('feature:result_report_download')
+        ->middleware('module:reports')
         ->name('results.report');
 
     Route::get('/assessments/{assessment}/report/download', [ResultController::class, 'downloadReport'])
-        ->middleware('feature:result_report_download')
+        ->middleware('module:reports')
         ->name('results.report.download');
 
     Route::get('/assessments/{assessment}/corrected-paper', [ResultController::class, 'correctedPaper'])
-        ->middleware('feature:corrected_paper_download')
+        ->middleware('module:corrected-paper')
         ->name('results.corrected');
 
     /*
@@ -200,14 +201,14 @@ Route::middleware(['auth', 'verified'])->group(function() {
 
     Route::resource('students', StudentController::class)
         ->except(['show'])
-        ->middleware('feature:student_records');
+        ->middleware('module:students');
 
     Route::post('/students/import', [StudentController::class, 'import'])
-        ->middleware('feature:bulk_student_import')
+        ->middleware('module:student-import')
         ->name('students.import');
 
     Route::get('/students-import-template', [StudentController::class, 'template'])
-        ->middleware('feature:bulk_student_import')
+        ->middleware('module:student-import')
         ->name('students.template');
 
     /*
@@ -216,7 +217,7 @@ Route::middleware(['auth', 'verified'])->group(function() {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/reports', [ReportController::class, 'index'])->middleware('module:reports')->name('reports.index');
 
     /*
     |--------------------------------------------------------------------------
@@ -225,15 +226,15 @@ Route::middleware(['auth', 'verified'])->group(function() {
     */
 
     Route::get('/communications', [CommunicationController::class, 'index'])
-        ->middleware('feature:parent_email')
+        ->middleware('module:communications')
         ->name('communications.index');
 
     Route::post('/assessments/{assessment}/parent-report', [ParentCommunicationController::class, 'send'])
-        ->middleware('feature:parent_email')
+        ->middleware('module:parent-email')
         ->name('parent-report.send');
 
     Route::post('/assessments/{assessment}/parent-mobile-link', [ParentCommunicationController::class, 'sendMobileLink'])
-        ->middleware('feature:parent_sms')
+        ->middleware('module:parent-sms')
         ->name('parent-report.mobile');
 
     /*
@@ -243,19 +244,19 @@ Route::middleware(['auth', 'verified'])->group(function() {
     */
 
     Route::get('/team', [TeamController::class, 'index'])
-        ->middleware(['feature:multiple_teachers', 'role:coaching'])
+        ->middleware('module:team')
         ->name('team.index');
 
     Route::post('/team', [TeamController::class, 'store'])
-        ->middleware(['feature:multiple_teachers', 'role:coaching'])
+        ->middleware('module:team')
         ->name('team.store');
 
     Route::put('/team/{teamMember}', [TeamController::class, 'update'])
-        ->middleware(['feature:multiple_teachers', 'role:coaching'])
+        ->middleware('module:team')
         ->name('team.update');
 
     Route::delete('/team/{teamMember}', [TeamController::class, 'destroy'])
-        ->middleware(['feature:multiple_teachers', 'role:coaching'])
+        ->middleware('module:team')
         ->name('team.destroy');
 
     /*

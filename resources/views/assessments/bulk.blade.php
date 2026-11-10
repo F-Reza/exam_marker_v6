@@ -369,33 +369,42 @@ h2
     <h2>📄 Shared Question Paper and Mark Scheme</h2>
 
     <div class="file-grid">
-        <label class="dropzone">
-            <span class="file-icon qp">QP</span>
-            <b>Question Paper</b>
-            <small>Compulsory · PDF, DOC or DOCX · Max 50 MB</small>
-            <input type="file" name="question_paper" accept=".pdf,.doc,.docx" required>
-            <em>Browse QP</em>
-            <output class="file-name">No file selected</output>
-        </label>
+        <div class="file-upload">
+            <label class="dropzone">
+                <span class="file-icon qp">QP</span>
+                <b>Question Paper</b>
+                <small>Compulsory · PDF, DOC or DOCX · Max 50 MB</small>
+                <input type="file" name="question_paper" accept=".pdf,.doc,.docx" required>
+                <em>Browse QP</em>
+                <output class="file-name">No file selected</output>
+            </label>
+            @include('assessments.partials.file-remove-button', ['label' => 'Remove selected question paper'])
+        </div>
 
-        <label class="dropzone">
-            <span class="file-icon ms">MS</span>
-            <b>Mark Scheme (Optional)</b>
-            <small>Optional · PDF, DOC or DOCX · Max 50 MB</small>
-            <input type="file" name="mark_scheme" accept=".pdf,.doc,.docx">
-            <em>Browse MS</em>
-            <output class="file-name">No file selected</output>
-        </label>
+        <div class="file-upload">
+            <label class="dropzone">
+                <span class="file-icon ms">MS</span>
+                <b>Mark Scheme (Optional)</b>
+                <small>Optional · PDF, DOC or DOCX · Max 50 MB</small>
+                <input type="file" name="mark_scheme" accept=".pdf,.doc,.docx">
+                <em>Browse MS</em>
+                <output class="file-name">No file selected</output>
+            </label>
+            @include('assessments.partials.file-remove-button', ['label' => 'Remove selected mark scheme'])
+        </div>
     </div>
 
-    <label class="dropzone wide">
-        <span class="file-icon insert">IN</span>
-        <b>Insert / Source Booklet (Optional)</b>
-        <small>Upload source files for English, comprehension or source-based papers. Max 5 files.</small>
-        <input type="file" name="inserts[]" multiple accept=".pdf,.doc,.docx">
-        <em>Browse Insert(s)</em>
-        <output class="file-name">No insert selected</output>
-    </label>
+    <div class="file-upload wide">
+        <label class="dropzone">
+            <span class="file-icon insert">IN</span>
+            <b>Insert / Source Booklet (Optional)</b>
+            <small>Upload source files for English, comprehension or source-based papers. Max 5 files.</small>
+            <input type="file" name="inserts[]" multiple accept=".pdf,.doc,.docx">
+            <em>Browse Insert(s)</em>
+            <output class="file-name">No insert selected</output>
+        </label>
+        @include('assessments.partials.file-remove-button', ['label' => 'Remove selected inserts'])
+    </div>
 
     <h2>👨‍🎓 Students and Written Answers</h2>
 
@@ -419,9 +428,10 @@ h2
                 <input class="input student-name" name="student_names[]" placeholder="Or type student name" required>
             </div>
 
-            <div>
+            <div class="file-upload bulk-file-upload">
                 <input class="input" type="file" name="written_answers[]" accept=".pdf,.doc,.docx" required>
                 <small class="file-helper">PDF, DOC or DOCX</small>
+                @include('assessments.partials.file-remove-button', ['label' => 'Remove selected written answer'])
             </div>
 
             <button type="button" class="btn ghost danger remove-row">✕ Remove</button>
@@ -457,9 +467,10 @@ h2
             <input class="input student-name" name="student_names[]" placeholder="Or type student name" required>
         </div>
 
-        <div>
+        <div class="file-upload bulk-file-upload">
             <input class="input" type="file" name="written_answers[]" accept=".pdf,.doc,.docx" required>
             <small class="file-helper">PDF, DOC or DOCX</small>
+            @include('assessments.partials.file-remove-button', ['label' => 'Remove selected written answer'])
         </div>
 
         <button type="button" class="btn ghost danger remove-row">✕ Remove</button>
@@ -467,6 +478,8 @@ h2
 </template>
 
 @endsection
+
+@include('assessments.partials.file-removal-assets')
 
 @push('scripts')
 <script>
@@ -479,18 +492,13 @@ h2
             const clone = template.content.cloneNode(true);
             rows.appendChild(clone);
             updateRemoveButtons();
-            
-            // Initialize file input display for new row
-            clone.querySelectorAll('input[type="file"]').forEach(input => {
-                input.addEventListener('change', handleFileChange);
-            });
         };
 
         // Handle file change
         function handleFileChange(e) {
             const input = e.target;
             // Find the closest container that holds the output/helper
-            const container = input.closest('.dropzone') || input.closest('.bulk-row');
+            const container = input.closest('.file-upload');
             
             // Prioritize finding the specific <output> element
             let output = container.querySelector('output.file-name');
@@ -569,9 +577,11 @@ h2
             });
         }
 
-        // Initialize file inputs on page load
-        document.querySelectorAll('.dropzone input[type="file"], .bulk-row input[type="file"]').forEach(input => {
-            input.addEventListener('change', handleFileChange);
+        // Delegation also handles files in newly added student rows.
+        rows.closest('form').addEventListener('change', function(e) {
+            if (e.target.matches('.file-upload input[type="file"]')) {
+                handleFileChange(e);
+            }
         });
 
         // Initial update
