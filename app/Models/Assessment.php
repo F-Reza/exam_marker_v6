@@ -56,6 +56,7 @@ class Assessment extends Model
         'error_message',
 
         'report_version'
+        , 'processing_token', 'processing_claim_token'
 
     ];
 

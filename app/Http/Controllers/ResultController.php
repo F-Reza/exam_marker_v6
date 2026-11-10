@@ -182,55 +182,11 @@ class ResultController extends Controller
 
 
 
-        $payload=$marker->mark(
-            $result->assessment
-        );
-
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Match question + sub-question
-        |--------------------------------------------------------------------------
-        */
-
-
-        $fresh=collect(
-            $payload['questions'] ?? []
-        )
-        ->first(
-            function($q) use($result){
-
-                return
-
-                ($q['question_number'] ?? null)
-                ==
-                $result->question_number
-
-                &&
-
-                strtolower(
-                    $q['question_part'] ?? ''
-                )
-                ==
-                strtolower(
-                    $result->question_part ?? ''
-                );
-
-            }
-        );
-
-
-
-        abort_unless(
-            $fresh,
-            422,
-            'The question could not be matched during recheck.'
-        );
-
-
-
-
+        abort_unless($marker instanceof \App\Services\QuestionScopedMarker,422,'The selected marking engine does not support question-only rechecks.');
+        $fresh=$marker->markQuestion($result->assessment,$result);
+        $copy=clone $result->assessment;$copy->total_marks=$result->max_marks;
+        $fresh=app(\App\Services\MarkingPayloadValidator::class)->validate($copy,['questions'=>[$fresh]])['questions'][0];
+        abort_unless(\App\Services\QuestionStructure::canonical($fresh['question_number'],$fresh['question_part']??null)===\App\Services\QuestionStructure::canonical($result->question_number,$result->question_part),422,'The rechecked question does not match the selected question.');
         $result->update([
 
             'ai_marks'=>
@@ -260,6 +216,7 @@ class ResultController extends Controller
 
 
             'status'=>'rechecked',
+            'writing_rubric'=>$fresh['writing_rubric']??$result->writing_rubric,
 
 
             'recheck_count'=>
@@ -381,6 +338,8 @@ class ResultController extends Controller
         );
 
 
+        app(\App\Services\LifecycleNotifier::class)->send($assessment->user,'reports','Result published','The approved result is ready.',route('results.show',$assessment));
+        if($assessment->student?->loginUser)app(\App\Services\LifecycleNotifier::class)->send($assessment->student->loginUser,'reports','New result available','Your teacher has published a result.',route('portal.student'));
         return back()->with(
             'success',
             'Result finalised and locked as the current approved result.'
@@ -640,24 +599,7 @@ class ResultController extends Controller
             'percentage'=>$pct,
 
 
-            'grade_awarded'=>
-
-            $pct>=90?'A+':
-
-            (
-                $pct>=80?'A':
-                (
-                    $pct>=70?'B':
-                    (
-                        $pct>=60?'C':
-                        (
-                            $pct>=50?'D':
-                            'Needs Improvement'
-                        )
-                    )
-                )
-            )
-
+            'grade_awarded'=>\App\Services\GradingService::grade($pct,$a)
         ]);
 
     }

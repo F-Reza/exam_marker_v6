@@ -483,4 +483,14 @@ Areas to improve
 
 
 
+@if($isFinalised && ($resultUser->canAccessModule('parent-email') || $resultUser->canAccessModule('parent-sms')))
+<section class="panel"><h2>Send approved report to parent</h2>
+@if($resultUser->canAccessModule('parent-email'))
+ @if($assessment->student?->parent_email)<form method="post" action="{{route('parent-report.send',$assessment)}}">@csrf<p>Email: {{$assessment->student->parent_email}}</p><label>Optional message<textarea class="input" name="message" maxlength="1000"></textarea></label><button class="btn">Send report email</button></form>@else<p>Add a parent email in this student's record before sending.</p>@endif
+@endif
+@if($resultUser->canAccessModule('parent-sms'))
+ @if($assessment->student?->parent_mobile)<form method="post" action="{{route('parent-report.mobile',$assessment)}}">@csrf<p>Mobile: {{$assessment->student->parent_mobile}}</p><button class="btn ghost">Record demo mobile secure link</button></form>@else<p>Add a parent mobile number in this student's record before sending.</p>@endif
+@endif
+<a href="{{route('communications.index')}}">View delivery history</a></section>
+@endif
 @endsection

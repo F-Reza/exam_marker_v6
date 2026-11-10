@@ -77,15 +77,15 @@ class AssessmentAccessWorkflowTest extends TestCase
         $this->post(route('assessments.store'), [
             'title' => 'Staff single upload', 'subject' => 'Math', 'total_marks' => 10,
             'student_id' => $profile->id,
-            'question_paper' => UploadedFile::fake()->create('question.pdf', 1, 'application/pdf'),
-            'written_answer' => UploadedFile::fake()->create('answer.pdf', 1, 'application/pdf'),
+            'question_paper' => UploadedFile::fake()->createWithContent('question.pdf', file_get_contents(__DIR__.'/../Fixtures/documents/question.pdf')),
+            'written_answer' => UploadedFile::fake()->createWithContent('answer.pdf', file_get_contents(__DIR__.'/../Fixtures/documents/question.pdf')),
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->post(route('assessments.bulk.store'), [
             'title' => 'Staff bulk upload', 'subject' => 'Math', 'total_marks' => 10,
             'student_ids' => [$profile->id], 'student_names' => [$profile->name],
-            'question_paper' => UploadedFile::fake()->create('question.pdf', 1, 'application/pdf'),
-            'written_answers' => [UploadedFile::fake()->create('answer.pdf', 1, 'application/pdf')],
+            'question_paper' => UploadedFile::fake()->createWithContent('question.pdf', file_get_contents(__DIR__.'/../Fixtures/documents/question.pdf')),
+            'written_answers' => [UploadedFile::fake()->createWithContent('answer.pdf', file_get_contents(__DIR__.'/../Fixtures/documents/question.pdf'))],
         ])->assertRedirect(route('assessments.index'))->assertSessionHasNoErrors();
 
         foreach (['Staff single upload', 'Staff bulk upload'] as $title) {

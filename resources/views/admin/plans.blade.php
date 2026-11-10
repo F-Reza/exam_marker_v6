@@ -26,7 +26,7 @@
                         type="number" name="sms_limit" value="{{$plan->limits['sms_limit']??0}}"></label><label>Recheck
                     limit<input class="input" type="number" name="recheck_limit"
                         value="{{$plan->limits['recheck_limit']??0}}"></label></div>
-            <div class="feature-checks">@foreach($plan->features as $key=>$on)<label><input type="checkbox"
+            <div class="feature-checks">@foreach(collect($plan->features)->except(["custom_branding","student_portal","parent_portal"]) as $key=>$on)<label><input type="checkbox"
                         name="features[{{$key}}]" value="1" @checked($on)> {{ucwords(str_replace('_','
                     ',$key))}}</label>@endforeach</div><button class="btn small">Update Plan</button>
         </form>@endforeach

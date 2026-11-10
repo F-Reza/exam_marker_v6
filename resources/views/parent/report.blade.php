@@ -27,8 +27,8 @@
         <div class="result-stats">
             <article><small>Total Marks</small><strong>{{$max}}</strong></article>
             <article><small>Obtained Marks</small><strong>{{$obt}}</strong></article>
-            <article><small>Percentage</small><strong>{{$assessment->percentage}}%</strong></article>
-            <article><small>Grade</small><strong>{{$assessment->grade_awarded}}</strong></article>
+            @if($assessment->user->hasFeature("percentage"))<article><small>Percentage</small><strong>{{$assessment->percentage}}%</strong></article>
+            @endif @if($assessment->user->hasFeature("grade"))<article><small>Grade</small><strong>{{$assessment->grade_awarded}}</strong></article>@endif
         </div>
         <div class="result-layout">
             <section class="panel">
@@ -39,7 +39,7 @@
                     </div>
                 </div>
                 <div class="question-list">@foreach($assessment->results as $r)<article class="question-row">
-                        <div class="q-number">{{$r->question_number}}</div>
+                        <div class="q-number">{{\App\Services\QuestionStructure::canonical((string)$r->question_number,$r->question_part)}}</div>
                         <div class="q-main">
                             <div class="q-top"><b>{{$r->teacher_marks??$r->ai_marks}} / {{$r->max_marks}}</b><span
                                     class="confidence {{$r->confidence}}">{{$r->topic??'General'}}</span></div>

@@ -14,7 +14,7 @@
             <label>Full name<input class="input" name="name" value="{{old('name',$user->name)}}"
                     required></label><label>Email<input class="input" value="{{$user->email}}"
                     disabled></label><label>Mobile<input class="input" name="mobile"
-                    value="{{old('mobile',$user->mobile)}}" required></label><label>Organisation<input class="input"
+                    value="{{old('mobile',$user->mobile)}}"></label><label>Organisation<input class="input"
                     name="organisation_name" value="{{old('organisation_name',$user->organisation_name)}}"></label>
             <div class="span-2"><button class="btn">Save Profile</button></div>
         </form>

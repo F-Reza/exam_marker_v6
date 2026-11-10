@@ -1,24 +1,38 @@
 <?php
 namespace App\Http\Controllers;
-use App\Models\{Assessment,ParentCommunication,UsageRecord};
+use App\Models\{Assessment,ParentCommunication,UsageRecord,User,SystemSetting};
 use App\Mail\ParentResultMail;
+use App\Services\{LifecycleNotifier,SubscriptionService};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\{DB,Mail};
 use Illuminate\Support\Str;
 class ParentCommunicationController extends Controller {
- public function send(Request $request,Assessment $assessment){
-  abort_unless($request->user()->canAccessAssessment($assessment),403); abort_unless($request->user()->hasFeature('parent_email'),403); $assessment->load('student','results'); abort_unless(in_array($assessment->status,['finalised','reported']),422,'Finalise the result before sending it to a parent.'); abort_unless($assessment->student?->parent_email,422,'Parent email is missing.');
-  $data=$request->validate(['message'=>'nullable|string|max:1000']); $this->enforceCommunicationLimit($request,'email'); $this->ensureLink($assessment);
-  try{Mail::to($assessment->student->parent_email)->send(new ParentResultMail($assessment->fresh(),$data['message']??null));$this->log($assessment,$assessment->student->parent_email,'email','sent',$data['message']??null);return back()->with('success','Parent report email sent successfully.');}
-  catch(\Throwable $e){report($e);$this->log($assessment,$assessment->student->parent_email,'email','failed',$e->getMessage());return back()->with('error','Email could not be sent. Check mail settings.');}
+ public function send(Request $request,Assessment $assessment){return $this->deliver($request,$assessment,'email');}
+ public function sendMobileLink(Request $request,Assessment $assessment){return $this->deliver($request,$assessment,'mobile_link');}
+ private function deliver(Request $request,Assessment $assessment,string $channel){
+  $email=$channel==='email';abort_unless($request->user()->canAccessAssessment($assessment)&&$request->user()->canAccessModule($email?'parent-email':'parent-sms'),403);
+  abort_unless(SystemSetting::enabled($email?'email_enabled':'sms_enabled',true),422,'This delivery channel is disabled by the administrator.');
+  abort_unless(in_array($assessment->status,['finalised','reported'],true),422,'Finalise the result before sending it.');
+  $assessment->load('student','results');$recipient=$email?$assessment->student?->parent_email:$assessment->student?->parent_mobile;abort_unless($recipient,422,$email?'Parent email is missing.':'Parent mobile is missing.');
+  $data=$request->validate(['message'=>'nullable|string|max:1000']);
+  if(!$email&&!config('exam-marker.demo_sms',true))return back()->with('error','Production SMS delivery is not configured.');
+  $log=DB::transaction(function()use($assessment,$request,$channel,$email,$recipient,$data){
+   $owner=User::whereKey($assessment->user_id)->lockForUpdate()->firstOrFail();$type=$email?'parent_email':'parent_mobile_link';$limit=$owner->limit($email?'email_limit':'sms_limit',0);
+   $used=UsageRecord::where('user_id',$owner->id)->where('type',$type)->where('created_at','>=',app(SubscriptionService::class)->cycleStart($owner))->sum('quantity');
+   abort_if(!$request->user()->isPlatformAdmin()&&($limit<=0||$used>=$limit),422,'Parent communication limit reached for this billing cycle.');
+   $paper=Assessment::whereKey($assessment->id)->lockForUpdate()->firstOrFail();abort_unless(in_array($paper->status,['finalised','reported'],true),422);
+   if(!$paper->public_report_token||!$paper->public_report_expires_at||$paper->public_report_expires_at->isPast())$paper->update(['public_report_token'=>Str::random(48),'public_report_expires_at'=>now()->addDays(config('exam-marker.parent_link_days',30))]);
+   UsageRecord::create(['user_id'=>$owner->id,'type'=>$type,'reference_type'=>Assessment::class,'reference_id'=>$assessment->id]);
+   return ParentCommunication::create(['assessment_id'=>$paper->id,'student_id'=>$paper->student_id,'recipient'=>$recipient,'channel'=>$channel,'status'=>'pending','message'=>$data['message']??null]);
+  });
+  try{
+   $assessment->refresh();$message=$data['message']??null;
+   if($email)Mail::to($recipient)->send(new ParentResultMail($assessment,$message));
+   else $message='Demo delivery: '.route('parent.report.public',$assessment->public_report_token);
+   $log->update(['status'=>'sent','message'=>$message,'sent_at'=>now()]);
+   Assessment::whereKey($assessment->id)->whereIn('status',['finalised','reported'])->update(['status'=>'reported']);
+   app(LifecycleNotifier::class)->send($assessment->user,'parent_delivery','Parent report delivery recorded',$email?'The report email was sent.':'The demo mobile secure link was recorded.',route('communications.index'));
+   return back()->with('success',$email?'Parent report email sent.':'Demo mobile link recorded in Communications.');
+  }catch(\Throwable $error){report($error);$log->update(['status'=>'failed','message'=>'Delivery failed. Check server mail settings.']);return back()->with('error','Email could not be sent. Check mail settings and retry.');}
  }
- public function sendMobileLink(Request $request,Assessment $assessment){
-  abort_unless($request->user()->canAccessAssessment($assessment),403); abort_unless($request->user()->hasFeature('parent_sms'),403); $assessment->load('student'); abort_unless(in_array($assessment->status,['finalised','reported']),422,'Finalise the result before sending it to a parent.'); abort_unless($assessment->student?->parent_mobile,422,'Parent mobile is missing.'); $this->ensureLink($assessment);
-  $this->enforceCommunicationLimit($request,'mobile_link'); $url=route('parent.report.public',$assessment->public_report_token); $message='Exam Marker result: '.$url;
-  if(!config('exam-marker.demo_sms',true)) return back()->with('error','Production SMS provider is not configured.');
-  $this->log($assessment,$assessment->student->parent_mobile,'mobile_link','sent',$message); return back()->with('success','Demo mobile-link delivery recorded. Open Communications to view the secure link.');
- }
- private function enforceCommunicationLimit(Request $request,string $channel): void { $limitKey=$channel==='email'?'email_limit':'sms_limit'; $limit=$request->user()->limit($limitKey,0); if($limit<=0) return; $used=ParentCommunication::whereHas('assessment',fn($q)=>$q->where('user_id',$request->user()->organisationOwnerId()))->where('channel',$channel)->where('created_at','>=',now()->startOfMonth())->count(); abort_if($used>=$limit,422,'Parent communication limit reached for this billing cycle.'); }
- private function ensureLink(Assessment $a){if(!$a->public_report_token)$a->update(['public_report_token'=>Str::random(48),'public_report_expires_at'=>now()->addDays(config('exam-marker.parent_link_days',30)),'status'=>'reported']);}
- private function log(Assessment $a,string $recipient,string $channel,string $status,?string $message){ParentCommunication::create(['assessment_id'=>$a->id,'student_id'=>$a->student_id,'recipient'=>$recipient,'channel'=>$channel,'status'=>$status,'message'=>$message,'sent_at'=>$status==='sent'?now():null]);UsageRecord::create(['user_id'=>$a->user_id,'type'=>$channel==='email'?'parent_email':'parent_mobile_link','reference_type'=>Assessment::class,'reference_id'=>$a->id]);}
 }

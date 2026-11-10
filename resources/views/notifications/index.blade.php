@@ -12,6 +12,9 @@
             @if(($n->data['type']??null) === 'support_ticket' && isset($n->data['ticket_id']))
             <a class="table-link" href="{{route(auth()->user()->isPlatformAdmin() ? 'admin.support.show' : 'help.show', (int)$n->data['ticket_id'])}}">Open ticket #{{(int)$n->data['ticket_id']}}</a>
             @endif
+            @if(($n->data['type']??null)==='lifecycle' && !empty($n->data['url']))
+            <a class="table-link" href="{{$n->data['url']}}">View details</a>
+            @endif
             <small>{{$n->created_at->diffForHumans()}}</small>
         </div>
     </article>

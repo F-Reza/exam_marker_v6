@@ -93,7 +93,8 @@ public function update(Request $request)
     |--------------------------------------------------------------------------
     */
 
-    if(empty($data['api_key']))
+    if($setting->exists && $setting->provider!==$data['provider'] && empty($data['api_key'])) { $data['api_key']=null; }
+    elseif(empty($data['api_key']))
     {
 
         unset($data['api_key']);
@@ -115,7 +116,7 @@ public function update(Request $request)
     if(empty($data['model']))
     {
 
-        $data['model']='adaptive-local-v1';
+        $data['model']=$data['provider']==='adaptive'?'adaptive-local-v1':config('ai.models.'.$data['provider'].'.model');
 
     }
 

@@ -40,6 +40,8 @@ class QuestionResult extends Model
         'teacher_comment',
 
         'criteria',
+        'writing_rubric',
+        'type',
 
         'status',
 
@@ -57,6 +59,7 @@ class QuestionResult extends Model
         return [
 
             'criteria'=>'array',
+            'writing_rubric'=>'array',
 
             'last_rechecked_at'=>'datetime',
 

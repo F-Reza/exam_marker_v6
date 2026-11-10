@@ -1,29 +1,15 @@
 <?php
 namespace App\Services;
 use App\Models\Assessment;
+use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
 class PdfReportService {
- public function make(Assessment $a): string {
-  $a->loadMissing('results','student');
-  $lines=['EXAM MARKER - RESULT REPORT','Assessment: '.$a->title,'Student: '.($a->student?->name??'Individual User'),'Subject: '.$a->subject,'Grade/Class: '.($a->grade??'-'),'','QUESTION-WISE MARKS'];
-  $results=$a->results
-    ->sortBy(function($r){
-
-        preg_match('/\d+/', $r->question_number,$m);
-
-        return (int)($m[0] ?? 0);
-
-    });
-
-
-foreach($results as $r) $lines[]=$r->question_number.'  '.($r->teacher_marks??$r->ai_marks).' / '.$r->max_marks.'  '.preg_replace('/\s+/',' ',(string)$r->feedback);
-  $obt=$a->results->sum(fn($r)=>(float)($r->teacher_marks??$r->ai_marks));$max=$a->results->sum(fn($r)=>(float)$r->max_marks);
-  $lines[]='';$lines[]='Total: '.$obt.' / '.$max;$lines[]='Percentage: '.($a->percentage??round($obt/max(1,$max)*100,1)).'%';$lines[]='Grade: '.($a->grade_awarded??'-');
-  return $this->simplePdf($lines);
- }
- private function simplePdf(array $lines): string {
-  $pages=array_chunk($lines,42);$objects=[];$pageIds=[];$fontId=3;$nextId=4;
-  foreach($pages as $page){$pageId=$nextId++;$contentId=$nextId++;$pageIds[]=$pageId;$stream="BT /F1 11 Tf 48 790 Td 14 TL\n";foreach($page as $line){$safe=str_replace(['\\','(',')'],['\\\\','\\(','\\)'],mb_substr((string)$line,0,110));$stream.='('.$safe.") Tj T*\n";}$stream.="ET";$objects[$contentId]="<< /Length ".strlen($stream)." >>\nstream\n$stream\nendstream";$objects[$pageId]="<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 $fontId 0 R >> >> /Contents $contentId 0 R >>";}
-  $objects[1]='<< /Type /Catalog /Pages 2 0 R >>';$objects[2]='<< /Type /Pages /Kids ['.implode(' ',array_map(fn($id)=>$id.' 0 R',$pageIds)).'] /Count '.count($pageIds).' >>';$objects[3]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';ksort($objects);
-  $pdf="%PDF-1.4\n";$offsets=[0=>0];foreach($objects as $id=>$body){$offsets[$id]=strlen($pdf);$pdf.="$id 0 obj\n$body\nendobj\n";}$xref=strlen($pdf);$max=max(array_keys($objects));$pdf.="xref\n0 ".($max+1)."\n0000000000 65535 f \n";for($i=1;$i<=$max;$i++)$pdf.=sprintf("%010d 00000 n \n",$offsets[$i]??0);$pdf.="trailer\n<< /Size ".($max+1)." /Root 1 0 R >>\nstartxref\n$xref\n%%EOF";return $pdf;
+ public function make(Assessment $assessment):string{
+  $directory=storage_path('framework/pdf');if(!is_dir($directory))mkdir($directory,0700,true);
+  $pdf=new Mpdf(['mode'=>'utf-8','format'=>'A4','default_font'=>'freeserif','default_font_size'=>11,'tempDir'=>$directory,'margin_top'=>18,'margin_bottom'=>18,'autoScriptToLang'=>true,'autoLangToFont'=>true]);
+  $pdf->SetTitle($assessment->title.' - Exam Marker');$pdf->SetAuthor('Exam Marker');$pdf->SetFooter('Exam Marker||{PAGENO} / {nbpg}');
+  $html=view('reports.print-body',app(ReportPresenter::class)->data($assessment))->render();
+  $pdf->WriteHTML('<style>body{font-family:freeserif;color:#17243a;line-height:1.5}h1{font-size:22pt;color:#1855a5}h2{font-size:15pt;margin-top:20pt}h3{font-size:12pt;margin-bottom:4pt}p{margin:6pt 0}.question-result{border-bottom:1px solid #dbe3ed;padding-bottom:10pt}li{margin-bottom:4pt}</style>'.$html);
+  return $pdf->Output('',Destination::STRING_RETURN);
  }
 }

@@ -72,11 +72,11 @@ Route::match(['GET', 'POST'], '/payments/callback/{provider}/{tx}', [PaymentCont
 
 Route::middleware('guest')->group(function() {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::get('/forgot-password', [PasswordController::class, 'requestForm'])->name('password.request');
-    Route::post('/forgot-password', [PasswordController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [PasswordController::class, 'sendResetLink'])->middleware('throttle:5,1')->name('password.email');
     Route::get('/reset-password/{token}', [PasswordController::class, 'resetForm'])->name('password.reset');
     Route::post('/reset-password', [PasswordController::class, 'reset'])->name('password.update');
 });
@@ -90,6 +90,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 */
 
 Route::middleware('auth')->group(function() {
+    Route::get('/student-invitations/{token}', [\App\Http\Controllers\StudentAccountController::class,'show'])->name('students.invitation');
+    Route::post('/student-invitations/{token}', [\App\Http\Controllers\StudentAccountController::class,'accept'])->name('students.invitation.accept');
     Route::get('/email/verify', function() {
         return view('auth.verify-email');
     })->name('verification.notice');
@@ -134,6 +136,9 @@ Route::middleware(['auth', 'verified'])->group(function() {
         ->name('assessments.bulk.store');
 
     Route::post('/assessments/{assessment}/start', [AssessmentController::class, 'start'])->name('assessments.start');
+    Route::post('/students/{student}/invite', [\App\Http\Controllers\StudentAccountController::class,'invite'])->middleware('module:students')->name('students.invite');
+    Route::put('/assessments/{assessment}/documents', [AssessmentController::class, 'replaceDocuments'])->name('assessments.documents');
+    Route::put('/assessments/{assessment}/teacher', [AssessmentController::class, 'assign'])->middleware('module:teacher-assignment')->name('assessments.assign');
     Route::get('/assessments/{assessment}/processing', [ProcessingController::class, 'show'])->name('assessments.processing');
     Route::get('/assessments/{assessment}/status', [ProcessingController::class, 'status'])->name('assessments.status');
 
@@ -280,6 +285,8 @@ Route::middleware(['auth', 'verified'])->group(function() {
     Route::post('/billing/change', [BillingController::class, 'change'])->name('billing.change');
 
     Route::get('/checkout/{plan}', [PaymentController::class, 'checkout'])->name('payments.checkout');
+    Route::get('/payments/cancel/{reference}', [PaymentController::class, 'cancel'])->name('payments.cancel');
+    Route::post('/billing/cancel-subscription', [PaymentController::class, 'cancelSubscription'])->name('billing.cancel-subscription');
     Route::post('/checkout/{plan}/pay', [PaymentController::class, 'pay'])->name('payments.pay');
 
     /*

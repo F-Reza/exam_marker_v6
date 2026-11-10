@@ -10,7 +10,7 @@
             @if($plan->slug==='mode-2')<span class="ribbon">Most Popular</span>@endif
             <span class="plan-kicker">{{$plan->slug==='free'?'TRY ONCE':strtoupper($plan->slug)}}</span>
             <h2>{{$plan->name}}</h2>
-            <div class="price">₹{{number_format((float)$plan->price)}}<small>/{{$plan->billing_period}}</small></div>
+            <div class="price">{{config('exam-marker.currency','INR')}} {{number_format((float)$plan->price)}}<small>/{{$plan->billing_period}}</small></div>
             <ul>
                 <li>✓ {{$plan->limits['paper_check_limit']??1}} paper checks</li>
                 <li>✓ Question-wise marks</li>

@@ -62,7 +62,7 @@ class AppServiceProvider extends ServiceProvider
 
 
                     default
-                        => new LocalDocumentReader(),
+                        => app(LocalDocumentReader::class),
 
                 };
 
@@ -193,6 +193,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \Illuminate\Support\Facades\RateLimiter::for('login', fn (\Illuminate\Http\Request $request) => \Illuminate\Cache\RateLimiting\Limit::perMinute(6)->by(strtolower((string)$request->input('email')).'|'.$request->ip()));
 
 
         View::composer(

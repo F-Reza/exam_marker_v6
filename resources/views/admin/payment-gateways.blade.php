@@ -73,6 +73,8 @@ action="{{route('admin.payment-gateways.update',$g)}}">
 
 <small>
 {{$g->provider}}
+@if(!in_array($g->provider,\App\Services\Payments\GatewayManager::SUPPORTED,true)) - Unavailable until its authenticated adapter is implemented and verified.@endif
+@if($g->provider==='paypal' && config('exam-marker.currency','INR')==='INR') - Hidden from INR checkout.@endif
 </small>
 
 </div>
@@ -85,7 +87,8 @@ action="{{route('admin.payment-gateways.update',$g)}}">
 type="checkbox"
 name="enabled"
 value="1"
-@checked($g->enabled)
+@checked($g->enabled && in_array($g->provider,\App\Services\Payments\GatewayManager::SUPPORTED,true))
+@disabled(!in_array($g->provider,\App\Services\Payments\GatewayManager::SUPPORTED,true))
 >
 
 <span></span>

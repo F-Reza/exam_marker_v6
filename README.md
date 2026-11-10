@@ -1,4 +1,4 @@
-# Exam Marker — Full System V5
+# Exam Marker — Full System V6
 
 This Laravel 12 package implements the requested Exam Marker flow for public visitors, students, individual teachers/tutors, Mode 3 coaching classes and the platform administrator.
 
@@ -34,7 +34,7 @@ This Laravel 12 package implements the requested Exam Marker flow for public vis
 29. Functional acceptance documentation.
 30. Deployment checklist.
 
-## Important product rules built into V5
+## Important product rules built into V6
 - QP and WA are compulsory; MS is optional.
 - Exam document formats are PDF, DOC and DOCX only.
 - Free Mode has one lifetime check.
@@ -44,13 +44,17 @@ This Laravel 12 package implements the requested Exam Marker flow for public vis
 - Mode 3 adds parent communication, corrected-paper package, multiple teachers and teacher-wise allocation.
 - No Mode 3 Plus and no multiple-branch feature.
 
+## Upgrade and verification
+
+For an existing installation follow [the safe upgrade procedure](docs/V6_SAFE_UPGRADE.md). Review the [27-issue remediation status](docs/V6_REMEDIATION_STATUS_2026-11-10.md) for evidence and remaining live-provider acceptance checks.
+
 ## Installation
 ### Linux/macOS
 ```bash
 cp .env.example .env
 composer install
 php artisan key:generate
-php artisan migrate:fresh --seed
+php artisan migrate --seed
 npm install
 npm run build
 php artisan serve

@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'currency' => env('EXAM_MARKER_CURRENCY','INR'),
 
     'async'=>
         (bool) env(
@@ -45,7 +46,13 @@ return [
     */
 
 
+    'word_tools' => [
+        'antiword' => env('ANTIWORD_PATH', 'antiword'),
+        'libreoffice' => env('LIBREOFFICE_PATH', 'soffice'),
+    ],
+
     'ocr_tools'=>[
+        'pdftoppm' => env('PDFTOPPM_PATH', 'pdftoppm'),
 
 
         'pdftotext'=>

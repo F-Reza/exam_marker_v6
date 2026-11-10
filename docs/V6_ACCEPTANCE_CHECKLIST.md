@@ -1,5 +1,7 @@
 # V6 Acceptance Checklist
 
+Automated remediation evidence: [10 November status](V6_REMEDIATION_STATUS_2026-11-10.md). The unchecked items below remain a deployment/real-document checklist; passing automated tests does not mark live merchant, SMTP or handwriting acceptance complete.
+
 - [ ] Register and login as Free, Mode 1, Mode 2, Mode 3 and Platform Admin.
 - [ ] Upload an English Checkpoint QP, separate Insert, optional MS and WA.
 - [ ] Confirm Insert appears on Paper Details and is read as context.

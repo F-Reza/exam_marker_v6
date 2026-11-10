@@ -343,6 +343,7 @@ h2
 
 <form method="POST" enctype="multipart/form-data" class="panel" action="{{route('assessments.bulk.store')}}">
     @csrf
+    @if(auth()->user()->canAccessModule('teacher-assignment'))<label>Allocate all uploaded papers to teacher<select class="input" name="assigned_teacher_id"><option value="">Not allocated</option>@foreach(\App\Models\User::where('owner_user_id',auth()->user()->organisationOwnerId())->where('user_type','teacher')->where('account_status','active')->get() as $teacher)<option value="{{$teacher->id}}">{{$teacher->name}}</option>@endforeach</select></label>@endif
 
     <div class="form-grid">
         <label>

@@ -30,7 +30,7 @@ class TeamController extends Controller
         $data = $request->validate([
             'name' => 'required|max:120',
             'email' => 'required|email|unique:users,email',
-            'mobile' => 'nullable|max:30',
+            'mobile' => 'nullable|string|max:30|unique:users,mobile',
             'role_title' => 'nullable|max:100',
             'password' => 'required|min:8',
         ]);
@@ -58,7 +58,7 @@ class TeamController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:120',
             'email' => 'required|email|unique:users,email,' . $teamMember->id,
-            'mobile' => 'nullable|string|max:30',
+            'mobile' => 'nullable|string|max:30|unique:users,mobile,'.$teamMember->id,
             'role_title' => 'nullable|string|max:100',
             'account_status' => 'required|in:active,inactive,suspended',
             'password' => 'nullable|string|min:8',

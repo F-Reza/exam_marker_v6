@@ -4,11 +4,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable {
+class User extends Authenticatable implements \Illuminate\Contracts\Auth\MustVerifyEmail {
  use HasFactory, Notifiable;
  protected $fillable=['name','email','mobile','password','user_type','organisation_name','avatar_path','notification_preferences','is_admin','plan_id','free_check_used','owner_user_id','account_status','role_title'];
  protected $hidden=['password','remember_token'];
- protected function casts(): array { return ['email_verified_at'=>'datetime','password'=>'hashed','is_admin'=>'boolean','free_check_used'=>'boolean','notification_preferences'=>'array']; }
+ protected function casts(): array { return ['email_verified_at'=>'datetime','subscription_started_at'=>'datetime','subscription_ends_at'=>'datetime','subscription_cancelled'=>'boolean','password'=>'hashed','is_admin'=>'boolean','free_check_used'=>'boolean','notification_preferences'=>'array']; }
+ public function hasVerifiedEmail(): bool { return $this->isPlatformAdmin() || !is_null($this->email_verified_at); }
  public function plan(){ return $this->belongsTo(Plan::class); }
  public function assessments(){ return $this->hasMany(Assessment::class); }
  public function students(){ return $this->hasMany(Student::class); }
@@ -18,7 +19,9 @@ class User extends Authenticatable {
  public function supportTickets(){ return $this->hasMany(SupportTicket::class); }
  public function isPlatformAdmin(): bool { return (bool)$this->is_admin || $this->user_type==='platform_admin'; }
  public function effectivePlan(): ?Plan {
-   return $this->owner_user_id && !$this->isStudent() ? $this->owner?->plan : $this->plan;
+   $owner=$this->owner_user_id && !$this->isStudent() ? $this->owner : $this;
+   if($owner?->subscription_ends_at?->isPast() && !$owner->isPlatformAdmin()) return Plan::where('slug','free')->first();
+   return $owner?->plan ?? Plan::where('slug','free')->first();
  }
  public function hasFeature(string $key): bool { if($this->isPlatformAdmin()) return true; return (bool)($this->effectivePlan()?->features[$key] ?? false); }
  public function limit(string $key, int $default=0): int { return (int)($this->effectivePlan()?->limits[$key] ?? $default); }

@@ -104,6 +104,9 @@ $data=$request->validate([
 
 
 ]);
+if($request->boolean('enabled') && !in_array($gateway->provider,\App\Services\Payments\GatewayManager::SUPPORTED,true)) {
+ return back()->withErrors(['enabled'=>'This gateway is unavailable until its authenticated adapter is implemented and verified.']);
+}
 
 
 

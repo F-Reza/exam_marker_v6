@@ -211,11 +211,12 @@ class PlanAccessFlowTest extends TestCase
         $this->giveFeatures($teacher, ['question_recheck' => true]);
         $paper = $this->paper($teacher, ['status' => 'review_required']);
         $result = $this->question($paper);
-        $this->mock(PaperMarker::class, function($mock) {
-            $mock->shouldReceive('mark')->once()->andReturn(['questions' => [[
-                'question_number' => '1', 'ai_marks' => 7, 'confidence' => 'high', 'feedback' => 'Rechecked calculation.',
-            ]]]);
-        });
+        $marker = \Mockery::mock(PaperMarker::class, \App\Services\QuestionScopedMarker::class);
+        $marker->shouldNotReceive('mark');
+        $marker->shouldReceive('markQuestion')->once()->andReturn([
+            'question_number' => '1', 'max_marks' => 10, 'ai_marks' => 7, 'confidence' => 'high', 'feedback' => 'Rechecked calculation.',
+        ]);
+        $this->app->instance(PaperMarker::class, $marker);
 
         $this->actingAs($teacher->fresh())->get(route('results.show', $paper))
             ->assertOk()->assertSee(route('results.recheck-question', $result), false)

@@ -28,7 +28,8 @@ abstract class TestCase extends BaseTestCase
                 'cache.default' => 'array',
                 'queue.default' => 'sync',
                 'mail.default' => 'array',
-                'logging.default' => 'errorlog',
+                'logging.default' => 'null',
+                'hashing.bcrypt.rounds' => 4,
                 'view.compiled' => storage_path('framework/testing/views'),
             ]);
         });

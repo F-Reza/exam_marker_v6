@@ -211,7 +211,7 @@ class QuestionHelper extends Helper
         foreach ($choices as $key => $value) {
             $padding = str_repeat(' ', $maxWidth - self::width($key));
 
-            $messages[] = \sprintf("  [<$tag>%s$padding</$tag>] %s", $key, $value);
+            $messages[] = \sprintf("  [<$tag>%s$padding</$tag>] %s", OutputFormatter::escapeTrailingBackslash($key), $value);
         }
 
         return $messages;
@@ -225,7 +225,7 @@ class QuestionHelper extends Helper
         if (null !== $this->getHelperSet() && $this->getHelperSet()->has('formatter')) {
             $message = $this->getHelperSet()->get('formatter')->formatBlock($error->getMessage(), 'error');
         } else {
-            $message = '<error>'.$error->getMessage().'</error>';
+            $message = '<error>'.OutputFormatter::escapeTrailingBackslash($error->getMessage()).'</error>';
         }
 
         $output->writeln($message);
@@ -234,8 +234,8 @@ class QuestionHelper extends Helper
     /**
      * Autocompletes a question.
      *
-     * @param resource                  $inputStream
-     * @param callable(string):string[] $autocomplete
+     * @param resource                      $inputStream
+     * @param callable(string):list<string> $autocomplete
      */
     private function autocomplete(OutputInterface $output, Question $question, $inputStream, callable $autocomplete): string
     {

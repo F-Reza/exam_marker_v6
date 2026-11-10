@@ -24,6 +24,16 @@ class MarshallingSessionHandler implements \SessionHandlerInterface, \SessionUpd
     ) {
     }
 
+    public function __serialize(): array
+    {
+        throw new \BadMethodCallException('Cannot serialize '.__CLASS__);
+    }
+
+    public function __unserialize(array $data): void
+    {
+        throw new \BadMethodCallException('Cannot unserialize '.__CLASS__);
+    }
+
     public function open(string $savePath, string $name): bool
     {
         return $this->handler->open($savePath, $name);
@@ -52,13 +62,27 @@ class MarshallingSessionHandler implements \SessionHandlerInterface, \SessionUpd
         return $this->handler->gc($maxlifetime);
     }
 
-    public function read(#[\SensitiveParameter] string $sessionId): string
+    public function read(#[\SensitiveParameter] string $sessionId): string|false
     {
-        return $this->marshaller->unmarshall($this->handler->read($sessionId));
+        if (false === $data = $this->handler->read($sessionId)) {
+            return false;
+        }
+
+        try {
+            return $this->marshaller->unmarshall($data);
+        } catch (\DomainException $e) {
+            // data that cannot be unmarshalled is treated as a missing session, as PHP does with data it cannot decode
+            return '';
+        }
     }
 
     public function write(#[\SensitiveParameter] string $sessionId, string $data): bool
     {
+        // empty data must reach the inner handler unchanged so that it destroys the session
+        if ('' === $data || (\function_exists('igbinary_serialize') && igbinary_serialize([]) === $data)) {
+            return $this->handler->write($sessionId, $data);
+        }
+
         $failed = [];
         $marshalledData = $this->marshaller->marshall(['data' => $data], $failed);
 

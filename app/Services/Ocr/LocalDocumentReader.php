@@ -2,596 +2,103 @@
 
 namespace App\Services\Ocr;
 
-
 use App\Contracts\DocumentReader;
 use App\Models\Assessment;
-
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
-
+use RuntimeException;
 use Smalot\PdfParser\Parser;
-
-
+use Symfony\Component\Process\Process;
 
 class LocalDocumentReader implements DocumentReader
 {
-
+    public function __construct(private WordDocumentExtractor $word) {}
 
     public function read(Assessment $assessment): array
     {
-
-
         $assessment->loadMissing('attachments');
-
-
-        $insertText=[];
-
-
-
-        foreach(
-            $assessment->attachments
-            ->where('type','insert')
-            as $attachment
-        )
-        {
-
-            $text=$this->extract(
-                $attachment->path
-            );
-
-
-            if($text)
-            {
-                $insertText[]=$text;
-            }
-
+        $inserts = [];
+        foreach ($assessment->attachments->where('type', 'insert') as $attachment) {
+            $inserts[] = $this->extract($attachment->path, 'Insert / Source Booklet');
         }
-
-
-
-
-
         return [
-
-
-            'qp_text'=>
-                $this->extract(
-                    $assessment->question_paper_path
-                ),
-
-
-
-            'ms_text'=>
-                $assessment->mark_scheme_path
-                ?
-                $this->extract(
-                    $assessment->mark_scheme_path
-                )
-                :
-                null,
-
-
-
-            'wa_text'=>
-                $this->extract(
-                    $assessment->written_answer_path
-                ),
-
-
-
-            'insert_text'=>
-                trim(
-                    implode(
-                        "\n\n",
-                        $insertText
-                    )
-                ),
-
-
-
-            'source'=>
-                'local-document-reader'
-
-
+            'qp_text' => $this->extract($assessment->question_paper_path, 'Question Paper'),
+            'ms_text' => $assessment->mark_scheme_path
+                ? $this->extract($assessment->mark_scheme_path, 'Mark Scheme') : null,
+            'wa_text' => $this->extract($assessment->written_answer_path, 'Written Answer'),
+            'insert_text' => trim(implode("\n\n", $inserts)),
+            'source' => 'local-document-reader',
         ];
-
-
     }
 
-
-
-
-
-
-
-
-
-    private function extract(?string $path): string
+    private function extract(?string $path, string $label): string
     {
-
-
-        if(!$path)
-        {
-            return '';
+        if (!$path || !Storage::exists($path)) {
+            throw new RuntimeException($label.' file is missing. Please upload it again.');
         }
-
-
-
-
-        if(!Storage::exists($path))
-        {
-
-            Log::warning(
-                'Document not found',
-                [
-                    'path'=>$path
-                ]
-            );
-
-
-            return '';
-
-        }
-
-
-
-
-
-        $absolute =
-            Storage::path($path);
-
-
-
-
-
-        $extension =
-            strtolower(
-                pathinfo(
-                    $absolute,
-                    PATHINFO_EXTENSION
-                )
-            );
-
-
-
-
-
-
-        try
-        {
-
-
-            return match($extension)
-            {
-
-
-                'pdf'=>
-                    $this->extractPdf(
-                        $absolute
-                    ),
-
-
-
-                'docx'=>
-                    $this->extractDocx(
-                        $absolute
-                    ),
-
-
-
-                'doc'=>
-                    $this->extractDoc(
-                        $absolute
-                    ),
-
-
-
-                default=>
-                    trim(
-                        Storage::get($path)
-                    )
-
+        try {
+            $file = Storage::path($path);
+            // Content detection also recovers previously stored DOCX files named .zip/.bin.
+            $type = $this->word->detect($file);
+            $text = match ($type) {
+                'pdf' => $this->pdf($file),
+                'docx' => $this->word->docx($file),
+                'doc', 'rtf' => $this->word->doc($file),
+                default => throw new RuntimeException('Unsupported or damaged file content. Upload a genuine PDF, DOC or DOCX file.'),
             };
-
-
-        }
-        catch(\Throwable $e)
-        {
-
-
-            Log::error(
-                'Document extraction error',
-                [
-
-                    'file'=>$absolute,
-
-                    'message'=>$e->getMessage()
-
-                ]
-            );
-
-
-            return '';
-
-        }
-
-
-
-    }
-
-
-
-
-
-
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | PDF Extraction
-    |--------------------------------------------------------------------------
-    */
-
-    private function extractPdf(string $file): string
-    {
-
-
-        /*
-        First try PHP PDF Parser
-        */
-
-
-        try
-        {
-
-
-            $parser =
-                new Parser();
-
-
-
-            $pdf =
-                $parser->parseFile(
-                    $file
-                );
-
-
-
-            $text =
-                trim(
-                    $pdf->getText()
-                );
-
-
-
-            if($text !== '')
-            {
-
-                return $text;
-
+            $text = trim(preg_replace('/^\x{FEFF}/u', '', $text) ?? $text);
+            if ($text === '') {
+                throw new RuntimeException('No readable text was found. For an image-only Word file, export to PDF and use OCR, or upload a typed DOCX. Password-protected documents must be unlocked first.');
             }
-
-
+            return $text;
+        } catch (\Throwable $e) {
+            throw new RuntimeException($label.': '.$e->getMessage(), 0, $e);
         }
-        catch(\Throwable $e)
-        {
-
-
-            Log::warning(
-                'PDF parser failed',
-                [
-                    'error'=>$e->getMessage()
-                ]
-            );
-
-
-        }
-
-
-
-
-
-        /*
-        Scanned PDF OCR fallback
-        */
-
-
-        return $this->ocrPdf(
-            $file
-        );
-
-
     }
 
-
-
-
-
-
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | OCR fallback
-    |--------------------------------------------------------------------------
-    */
-
-    private function ocrPdf(string $file): string
+    private function pdf(string $file): string
     {
+        try {
+            $text = trim((new Parser())->parseFile($file)->getText());
+            if ($text !== '') return $text;
+        } catch (\Throwable $e) {
+            // Try Poppler for PDFs unsupported by the PHP parser.
+        }
+        try {
+            $process = new Process([config('exam-marker.ocr_tools.pdftotext', 'pdftotext'), '-layout', $file, '-']);
+            $process->setTimeout(60);
+            $process->run();
+            if ($process->isSuccessful() && trim($process->getOutput()) !== '') return trim($process->getOutput());
+        } catch (\Throwable $e) {
+            // Image-only PDFs need OCR below.
+        }
+        return $this->ocr($file);
+    }
 
-
-        /*
-        Enable on server with:
-
-        sudo apt install tesseract-ocr
-        sudo apt install poppler-utils
-
-        */
-
-
-        try
-        {
-
-
-            $directory =
-                dirname($file)
-                .'/ocr_'
-                .time();
-
-
-
-            $command =
-                'pdftoppm -png '
-                .
-                escapeshellarg($file)
-                .
-                ' '
-                .
-                escapeshellarg($directory);
-
-
-
-            shell_exec($command);
-
-
-
-
-            $images =
-                glob(
-                    $directory.'*.png'
-                );
-
-
-
-
-            $text='';
-
-
-
-            foreach($images as $image)
-            {
-
-
-                $text .= "\n".
-                    shell_exec(
-                        'tesseract '
-                        .
-                        escapeshellarg($image)
-                        .
-                        ' stdout'
-                    );
-
-
-
-                unlink($image);
-
-
+    private function ocr(string $file): string
+    {
+        $base = tempnam(sys_get_temp_dir(), 'em-ocr-');
+        if ($base === false) throw new RuntimeException('The server temporary directory is not writable.');
+        @unlink($base);
+        if (!mkdir($base, 0700)) throw new RuntimeException('Unable to prepare PDF OCR.');
+        try {
+            $process = new Process([config('exam-marker.ocr_tools.pdftoppm', 'pdftoppm'), '-r', '150', '-png', $file, $base.'/page']);
+            $process->setTimeout(90);
+            $process->mustRun();
+            $images = glob($base.'/page-*.png') ?: [];
+            natsort($images);
+            $text = [];
+            foreach ($images as $image) {
+                $ocr = new Process([config('exam-marker.ocr_tools.tesseract', 'tesseract'), $image, 'stdout']);
+                $ocr->setTimeout(60);
+                $ocr->mustRun();
+                $text[] = $ocr->getOutput();
             }
-
-
-
-
-            return trim($text);
-
-
-
+            return trim(implode("\n", $text));
+        } catch (\Throwable $e) {
+            throw new RuntimeException('PDF text could not be extracted. Scanned PDFs require Poppler (pdftoppm) and Tesseract on the server, with process execution enabled.', 0, $e);
+        } finally {
+            foreach (glob($base.'/*') ?: [] as $image) @unlink($image);
+            @rmdir($base);
         }
-        catch(\Throwable $e)
-        {
-
-
-            Log::warning(
-                'OCR unavailable',
-                [
-                    'error'=>$e->getMessage()
-                ]
-            );
-
-
-            return '';
-
-        }
-
-
     }
-
-
-
-
-
-
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | DOC extraction
-    |--------------------------------------------------------------------------
-    */
-
-    private function extractDoc(string $file): string
-    {
-
-
-        return trim(
-            $this->command(
-                [
-                    'antiword',
-                    $file
-                ]
-            )
-        );
-
-
-    }
-
-
-
-
-
-
-
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | DOCX extraction
-    |--------------------------------------------------------------------------
-    */
-
-    private function extractDocx(string $file): string
-    {
-
-
-        if(class_exists(\ZipArchive::class))
-        {
-
-
-            $zip =
-                new \ZipArchive();
-
-
-
-            if(
-                $zip->open($file)
-                ===
-                true
-            )
-            {
-
-
-                $xml =
-                    $zip->getFromName(
-                        'word/document.xml'
-                    )
-                    ??
-                    '';
-
-
-
-                $zip->close();
-
-
-
-                return $this->xmlToText(
-                    $xml
-                );
-
-
-            }
-
-
-        }
-
-
-
-        return '';
-
-    }
-
-
-
-
-
-
-
-
-
-    private function command(array $args): string
-    {
-
-
-        $cmd =
-            implode(
-                ' ',
-                array_map(
-                    'escapeshellarg',
-                    $args
-                )
-            )
-            .
-            ' 2>/dev/null';
-
-
-
-        return trim(
-            (string)
-            shell_exec($cmd)
-        );
-
-
-    }
-
-
-
-
-
-
-
-
-
-    private function xmlToText(string $xml): string
-    {
-
-
-        if(!$xml)
-        {
-            return '';
-        }
-
-
-
-        $xml =
-            str_replace(
-                [
-                    '</w:p>',
-                    '</w:tr>',
-                    '<w:tab/>'
-                ],
-                [
-                    "\n",
-                    "\n",
-                    "\t"
-                ],
-                $xml
-            );
-
-
-
-
-        return trim(
-            html_entity_decode(
-                strip_tags($xml),
-                ENT_QUOTES | ENT_XML1,
-                'UTF-8'
-            )
-        );
-
-
-    }
-
-
-
 }

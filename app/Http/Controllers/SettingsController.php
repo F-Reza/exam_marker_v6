@@ -5,7 +5,7 @@ use Illuminate\Support\Facades\Hash;
 class SettingsController extends Controller {
  public function index(Request $request){return view('settings.index',['user'=>$request->user()]);}
  public function updateProfile(Request $request){
-  $data=$request->validate(['name'=>'required|string|max:120','mobile'=>'required|string|max:30|unique:users,mobile,'.$request->user()->id,'organisation_name'=>'nullable|string|max:180']);
+  $data=$request->validate(['name'=>'required|string|max:120','mobile'=>'nullable|string|max:30|unique:users,mobile,'.$request->user()->id,'organisation_name'=>'nullable|string|max:180']);
   $request->user()->update($data); return back()->with('success','Profile updated.');
  }
  public function updatePassword(Request $request){

@@ -228,6 +228,7 @@ class AdminUserController extends Controller
 
 
         $user = User::create($d);
+        if($user->plan && !$user->owner_user_id)app(\App\Services\SubscriptionService::class)->activate($user,$user->plan);
 
 
 
@@ -357,6 +358,8 @@ class AdminUserController extends Controller
 
 
         ]);
+        if(!$user->owner_user_id && $user->wasChanged('plan_id') && $user->plan()->exists())app(\App\Services\SubscriptionService::class)->activate($user,$user->plan()->first());
+
 
 
 
