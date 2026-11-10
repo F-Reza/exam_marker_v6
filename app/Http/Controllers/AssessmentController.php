@@ -11,7 +11,7 @@ class AssessmentController extends Controller {
  public function index(){
   $u=request()->user();
   $q=$u->accessibleAssessments();
-  return view('assessments.index',['assessments'=>$q->latest()->with(['student','assignedTeacher'])->paginate(12)]);
+  return view('assessments.index',['assessments'=>$q->latest()->with(['student','assignedTeacher','results'])->paginate(12)]);
  }
  public function create(){
   $u=request()->user(); $owner=$u->organisationOwnerId();
@@ -35,13 +35,13 @@ class AssessmentController extends Controller {
    'written_answer'=>['required',File::types(['pdf','doc','docx'])->max(50*1024)],
    'inserts'=>'nullable|array|max:5','inserts.*'=>['file',File::types(['pdf','doc','docx'])->max(50*1024)],
   ]);
-  if($user->isStudent()){ $data['student_id']=null; $data['assigned_teacher_id']=null; }
+  if($user->isStudent() && !$user->isPlatformAdmin()){ $data['student_id']=null; $data['assigned_teacher_id']=null; }
   if(!empty($data['student_id']) && !Student::where('user_id',$ownerId)->whereKey($data['student_id'])->exists()) abort(403);
   if(!empty($data['assigned_teacher_id'])){
    abort_unless($user->canAccessModule('teacher-assignment'),403,'Teacher assignment is available in Mode 3.');
    abort_unless(User::where('owner_user_id',$ownerId)->where('user_type','teacher')->whereKey($data['assigned_teacher_id'])->exists(),403);
   }
-  if($user->isTeacher() && $user->owner_user_id) $data['assigned_teacher_id']=$user->id;
+  if($user->isTeacher() && $user->owner_user_id && !$user->isPlatformAdmin()) $data['assigned_teacher_id']=$user->id;
   $assessment=Assessment::create([
    'user_id'=>$ownerId,'student_id'=>$data['student_id']??null,'assigned_teacher_id'=>$data['assigned_teacher_id']??null,'title'=>$data['title'],'subject'=>$data['subject'],'grade'=>$data['grade']??null,'exam_board'=>$data['exam_board']??null,'assessment_date'=>$data['assessment_date']??null,'total_marks'=>$data['total_marks'],'status'=>'uploaded',
    'question_paper_path'=>$request->file('question_paper')->store('private/papers/qp'),
@@ -56,7 +56,7 @@ class AssessmentController extends Controller {
  public function show(Assessment $assessment){ $this->authorizeAssessment($assessment); return view('assessments.show',compact('assessment')); }
  public function start(Assessment $assessment, AuditService $audit){
   $this->authorizeAssessment($assessment);
-  abort_if(request()->user()->isStudent() && $assessment->user_id!==request()->user()->id,403,'Students can only start checking their own uploaded papers.');
+  abort_if(request()->user()->isStudent() && !request()->user()->isPlatformAdmin() && $assessment->user_id!==request()->user()->id,403,'Students can only start checking their own uploaded papers.');
   abort_unless(in_array($assessment->status,['uploaded','failed']),422);
   $assessment->update(['status'=>'queued','error_message'=>null]); $audit->log($assessment,'assessment.queued');
   if(config('exam-marker.async',false)) ProcessAssessment::dispatch($assessment->id); else ProcessAssessment::dispatchSync($assessment->id);

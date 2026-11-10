@@ -5,7 +5,7 @@ use App\Models\Assessment;
 class AnalyticsController extends Controller {
  public function index(){
   $user=request()->user(); abort_unless($user->canAccessModule('analytics'),403);
-  $assessments=$user->accessibleAssessments()->whereNotNull('percentage')->latest()->take(20)->get();
+  $assessments=$user->accessibleAssessments()->with('results')->whereNotNull('percentage')->latest()->take(20)->get();
   $topicRows=$user->hasFeature('topic_analysis')
    ? DB::table('question_results')->whereIn('assessment_id',$user->accessibleAssessments()->select('assessments.id'))
     ->selectRaw("COALESCE(topic,'General') as topic, SUM(COALESCE(teacher_marks,ai_marks)) as obtained, SUM(max_marks) as maximum")

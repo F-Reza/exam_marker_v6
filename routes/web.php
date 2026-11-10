@@ -113,8 +113,8 @@ Route::middleware('auth')->group(function() {
 
 Route::middleware(['auth', 'verified'])->group(function() {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::get('/student-portal', [PortalController::class, 'student'])->middleware('role:student')->name('portal.student');
-    Route::get('/teacher-workspace', [PortalController::class, 'teacher'])->middleware('role:teacher')->name('portal.teacher');
+    Route::get('/student-portal', [PortalController::class, 'student'])->middleware('module:student-portal')->name('portal.student');
+    Route::get('/teacher-workspace', [PortalController::class, 'teacher'])->middleware('module:teacher-workspace')->name('portal.teacher');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->middleware('module:analytics')->name('analytics');
 
     /*

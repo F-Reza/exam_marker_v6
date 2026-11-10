@@ -16,7 +16,7 @@ class User extends Authenticatable {
  public function staffAccounts(){ return $this->hasMany(User::class,'owner_user_id'); }
  public function teamMembers(){ return $this->hasMany(TeamMember::class,'owner_id'); }
  public function supportTickets(){ return $this->hasMany(SupportTicket::class); }
- public function isPlatformAdmin(): bool { return (bool)$this->is_admin || $this->user_type==='platform_admin' || $this->role_title==='platform_admin'; }
+ public function isPlatformAdmin(): bool { return (bool)$this->is_admin || $this->user_type==='platform_admin'; }
  public function effectivePlan(): ?Plan {
    return $this->owner_user_id && !$this->isStudent() ? $this->owner?->plan : $this->plan;
  }

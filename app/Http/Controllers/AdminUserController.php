@@ -67,7 +67,6 @@ class AdminUserController extends Controller
             CASE
                 WHEN is_admin = 1
                 OR user_type='platform_admin'
-                OR role_title='platform_admin'
                 THEN 1
                 ELSE 0
             END ASC
@@ -147,7 +146,6 @@ class AdminUserController extends Controller
             CASE
                 WHEN is_admin = 1
                 OR user_type='platform_admin'
-                OR role_title='platform_admin'
                 THEN 1
                 ELSE 0
             END ASC

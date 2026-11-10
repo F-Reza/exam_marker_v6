@@ -38,9 +38,11 @@
                 <label class="toggle-row"><input type="checkbox" name="reports" value="1"
                         @checked($prefs['reports']??true)><span><b>Reports</b><small>Notify when a result is
                             finalised.</small></span></label>
+                @if(auth()->user()->canAccessModule('communications'))
                 <label class="toggle-row"><input type="checkbox" name="parent_delivery" value="1"
                         @checked($prefs['parent_delivery']??true)><span><b>Parent delivery</b><small>Notify when a
                             parent report is delivered.</small></span></label>
+                @endif
                 <label class="toggle-row"><input type="checkbox" name="billing" value="1"
                         @checked($prefs['billing']??true)><span><b>Billing</b><small>Plan and usage
                             reminders.</small></span></label>
